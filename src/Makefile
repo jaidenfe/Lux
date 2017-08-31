@@ -1,4 +1,4 @@
-all: client server
+all: bin/client bin/server
 
 server.o: firmware/server.cpp
 	g++ -std=c++11 -c firmware/server.cpp
@@ -6,13 +6,15 @@ server.o: firmware/server.cpp
 client.o: firmware/client.cpp
 	g++ -std=c++11 -c firmware/client.cpp
 
-server: server.o
-	g++ server.o -o server
+bin/server: server.o
+	mkdir -p bin
+	g++ server.o -o bin/server
 	rm server.o
 
-client: client.o
-	g++ client.o -o client
+bin/client: client.o
+	mkdir -p bin
+	g++ client.o -o bin/client
 	rm client.o
 
 clean:
-	rm *.o *~ client server
+	rm -rf bin
