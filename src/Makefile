@@ -1,7 +1,7 @@
 all: bin/client bin/server
 
-server.o: firmware/server.cpp
-	g++ -std=c++11 -c firmware/server.cpp
+server.o: hub/server.cpp
+	g++ -std=c++11 -c hub/server.cpp
 
 client.o: firmware/client.cpp
 	g++ -std=c++11 -c firmware/client.cpp
