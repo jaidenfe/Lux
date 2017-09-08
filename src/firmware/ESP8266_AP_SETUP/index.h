@@ -23,18 +23,13 @@ const char MAIN_page[] PROGMEM = R"=====(
 				width: 40px;
 			}
 		</style>
-		<script type="text/javascript">
-			function handleConfig(){
-				// TODO: Store this information on the chip
-			}
-		</script>
 	</head>
 
 	<body>
 		<center>
 		<div id="settings">
 			<center>
-				<form name="configuration" onSubmit="JavaScript:handleConfig()">
+				<form name="configuration">
 					<h1>LUX Network Configuration</h1>
 					<hr>
 					SSID: <input type="text" name="network_ssid" value=""><br>
@@ -42,10 +37,10 @@ const char MAIN_page[] PROGMEM = R"=====(
 					Hub IP Address:
 					<input class="addr" type="text" name="hub_ip_0" value="192">
 					. <input class="addr" type="text" name="hub_ip_1" value="168">
-					. <input class="addr" type="text" name="hub_ip_2" value="0">
-					. <input class="addr" type="text" name="hub_ip_3" value="2">
-					: <input class="addr" type="text" name="hub_port" value="8080"><br><br>
-					<input name="Submit"  type="submit" value="Apply Configuration" onClick="JavaScript:handleConfig()"/>
+					. <input class="addr" type="text" name="hub_ip_2" value="4">
+					. <input class="addr" type="text" name="hub_ip_3" value="6">
+					: <input class="addr" type="text" name="hub_port" value="80"><br><br>
+					<input name="Submit"  type="submit" value="Apply Configuration"/>
 				</form> 
 		</center>
 		</div>
