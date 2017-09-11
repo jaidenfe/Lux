@@ -7,19 +7,24 @@
 #include <string>
 #include <map>
 #include <list>
+#include <vector>
 
 using namespace std;
 
 class Device {
 	private:
 		long id;
-		string ip, name;
+		string ip, name, f_vers, h_vers;
 	public:
 		Device(long, string, string);
 		~Device();
 		long getID() const;
 		string getIP() const;
 		string getName() const;
+		string firmware_version() const;
+		string hardware_version() const;
+		void set_f_vers(string);
+		void set_h_vers(string);
 		bool operator ==(const Device) const;//compares id, ip, name
 };
 
@@ -49,6 +54,7 @@ Device byName(string);
 
 bool isValidName(string);//returns 0 (false) or 1 (true)
 bool isValidGroupName(string);//same return policy
+bool isValidVersion(string);//same
 
 DeviceGroup byGroupName(string);
 

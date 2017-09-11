@@ -9,11 +9,16 @@ map<string, Device*> devs_ip;
 map<string, Device*> devs_n;
 //END EXTERNAL DEFINITIONS
 
+char delim = '|';
+
 //BEGIN Device
 Device::Device(long id, string ip, string name) {
 	this->id = id;
 	this->ip = ip;
 	this->name = name;
+	
+	f_vers = "UNKNOWN";
+	h_vers = "UNKNOWN";
 	
 	devs_id.insert(pair<long, Device*>(this->id, this));
 	devs_ip.insert(pair<string, Device*>(this->ip, this));
@@ -32,6 +37,22 @@ string Device::getIP() const {
 
 string Device::getName() const {
 	return name;
+}
+
+string Device::firmware_version() const {
+	return f_vers;
+}
+
+string Device::hardware_version() const {
+	return h_vers;
+}
+
+void Device::set_f_vers(string f_vers) {
+	this->f_vers = f_vers;
+}
+
+void Device::set_h_vers(string h_vers) {
+	this->h_vers = h_vers;
 }
 
 bool Device::operator ==(const Device dev) const {
@@ -106,8 +127,7 @@ bool isProperLength(string name) {
 	return name.length() <= MAX_NAME_LENGTH;
 }
 
-bool legalChars(string name) {
-	string legal = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890 ";
+bool legalChars(string name, string legal) {
 	for (int i = 0; i < legal.length(); i++) {
 		if (name.find(legal[i]) != -1) {//string::npos = -1, return value of string::find() if no matches
 			continue;
@@ -119,11 +139,18 @@ bool legalChars(string name) {
 //END UTILITY FUNCTIONS
 
 bool isValidName(string name) {
-	return isProperLength(name) && legalChars(name) && name != "NULL" && byName(name).getID() != -1;//valid name
+	string legal = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890 ";
+	return isProperLength(name) && legalChars(name, legal) && name != "NULL" && byName(name).getID() != -1;//valid name
 }
 
 bool isValidGroupName(string name) {
-	return isProperLength(name) && legalChars(name) && name != "NULL" && byGroupName(name).getName() != "NULL";//valid name
+	string legal = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890 ";
+	return isProperLength(name) && legalChars(name, legal) && name != "NULL" && byGroupName(name).getName() != "NULL";//valid name
+}
+
+bool isValidVersion(string vers) {
+	string legal = ".1234567890";
+	return isProperLength(vers) && legalChars(vers, legal);
 }
 
 DeviceGroup byGroupName(string name) {
@@ -154,7 +181,8 @@ void updateFile(string filename) {
 		for (list<Device*>::iterator dit = devs.begin(); dit != devs.end(); ++dit) {//print all devices in the group
 			Device* dev = *dit;
 			
-			file << "\t" << dev->getID() << " : " << dev->getIP() << " : " << dev->getName() << endl;
+			file << "\t" << dev->getID() << delim << dev->getIP() << delim << dev->getName() << delim << dev->firmware_version() << delim << dev->hardware_version() << endl;
+			//    ID : IP : NAME : FV : HV
 		}
 	}
 	
@@ -172,6 +200,17 @@ string trim(string line) {
 	}
 	return trimmed;
 }
+
+vector<string> split(string line, char delimiter){
+    vector<string> list;
+	string save = string(line);
+    int pos = 0;
+    while ((pos = save.find(delimiter)) != string::npos) {
+        list.push_back(save.substr(0, pos));
+        save.erase(0, pos + 1);
+    }
+    return list;
+}
 //END UTILITY FUNCTION
 
 bool loadFile(string filename) {
@@ -184,7 +223,7 @@ bool loadFile(string filename) {
 	DeviceGroup* grp;
 	
 	long id;
-	string ip, name;
+	string ip, name, f_vers, h_vers;
 	
 	while(getline(file, line)) {
 		if (line[0] == '\t') {//device
@@ -192,11 +231,18 @@ bool loadFile(string filename) {
 				return false;//INCORRECT FORMATTING, DEVICE/S OUTSIDE OF GROUP
 			}
 			
-			id = atol(trim(line.substr(0, line.find(":") - 1)).c_str());
-			ip = trim(line.substr(line.find(":") + 1, line.rfind(":") - (line.find(":") + 1)));
-			name = trim(line.substr(line.rfind(":") + 1));
+			vector<string> data = split(line, delim);
+			
+			id = atol(trim(data[0]).c_str());
+			ip = trim(data[1]);
+			name = trim(data[2]);
+			f_vers = trim(data[3]);
+			h_vers = trim(line.substr(line.rfind(delim) + 1));
 			
 			Device* dev = new Device(id, ip, name);
+			
+			dev->set_f_vers(f_vers);
+			dev->set_h_vers(h_vers);
 			
 			grp->addDevice(dev);
 		} else {//devicegroup
