@@ -35,7 +35,7 @@ bool ext;
 //pthread_mutex_t recv_mutex     = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t print_mutex    = PTHREAD_MUTEX_INITIALIZER;
 
-template <typename T> std::string toString(T t) {
+template <typename T> string toString(T t) {
 	ostringstream ss;
 	ss << t;
 	return ss.str();
@@ -52,7 +52,7 @@ void setup(ConnectionInfo* av){
 	if((av->server = socket(AF_INET, SOCK_STREAM, 0)) == 0){
 		// Handle Exception
 		pthread_mutex_lock( &print_mutex );
-		std::cout << "Error creating socket" << std::endl;
+		cout << "Error creating socket" << endl;
 		pthread_mutex_unlock( &print_mutex );
 		return;
 	}
@@ -60,7 +60,7 @@ void setup(ConnectionInfo* av){
 	if (setsockopt(av->server, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))){
 		// Handle Exception
 		pthread_mutex_lock( &print_mutex );
-		std::cout << "Error setting socket options" << std::endl;
+		cout << "Error setting socket options" << endl;
 		pthread_mutex_unlock( &print_mutex );
 		return;
 	}
@@ -72,7 +72,7 @@ void setup(ConnectionInfo* av){
 	if (bind(av->server, (struct sockaddr *)&av->soc_address, av->address_length)<0) {
 		// Handle Exception
 		pthread_mutex_lock( &print_mutex );
-		std::cout << "Error binding port" << std::endl;
+		cout << "Error binding port" << endl;
 		pthread_mutex_unlock( &print_mutex );
 		return;
 	}
@@ -85,7 +85,7 @@ void* listen(void* rl){
 	if (listen(l->server, 3) < 0) {
 		// Handle Exception
 		pthread_mutex_lock( &print_mutex );
-		std::cout << "Error listening" << std::endl;
+		cout << "Error listening" << endl;
 		pthread_mutex_unlock( &print_mutex );
 
 		pthread_exit(0);
@@ -98,7 +98,7 @@ void* listen(void* rl){
 			if ((l->devices[l->device_num] = accept(l->server, (struct sockaddr *)&l->soc_address, (socklen_t*)&l->address_length))<0) {
 				// Handle Exception
 				pthread_mutex_lock( &print_mutex );
-				std::cout << "Error accepting connection" << std::endl;
+				cout << "Error accepting connection" << endl;
 				pthread_mutex_unlock( &print_mutex );
 				pthread_exit(0);
 			}
@@ -107,12 +107,12 @@ void* listen(void* rl){
 			int valread = recv(l->devices[l->device_num], buffer, 1024, 0);
 //			pthread_mutex_unlock( &recv_mutex );
 
-			if(std::string(buffer).compare("L000") == 0) {
+			if(string(buffer).compare("L000") == 0) {
 				auth = true;
 				printf("%s: Connect\n",buffer );
 			}
 			else {
-				std::string msg = "Authentication Failure";
+				string msg = "Authentication Failure";
 				printf("%s: %s\n",buffer, msg.c_str());
 //				pthread_mutex_lock( &recv_mutex );
 				send(l->devices[l->device_num], msg.c_str(), msg.length(), 0);
@@ -132,7 +132,7 @@ void* listen(void* rl){
 
 void send(string ip, string data) {
 	if (ip.compare("ALL") == 0 && send(server_sock, data.c_str(), data.length(), 0) == -1) {
-		std::cerr << "Local error when sending data to client." << std::endl;
+		cerr << "Local error when sending data to client." << endl;
 		return;
 	}
 	
@@ -142,7 +142,7 @@ void send(string ip, string data) {
 	hints.ai_family = AF_INET;
 	
 	if (getaddrinfo(ip.c_str(), NULL, &hints, &results)) {//resolve host ip
-		std::cerr << "Failed attempt to send message to client." << std::endl;
+		cerr << "Failed attempt to send message to client." << endl;
 		return;
 	}
 	
@@ -150,7 +150,7 @@ void send(string ip, string data) {
 	client_addr.sin_port = htons(PORT);
 	
 	if (connect(server_sock, (struct sockaddr*) &client_addr, sizeof(struct sockaddr_in)) == -1) {
-		std::cerr << "Connection to client failed." << endl;//errno updated
+		cerr << "Connection to client failed." << endl;//errno updated
 		return;
 	}
 	
