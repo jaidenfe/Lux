@@ -147,6 +147,12 @@ void* read(void* rdn){
 				pthread_mutex_unlock( &print_mutex );
 				vi->device_num = vi->device_num - 1;
 				vi->devices[target] = -1;
+			} else if (std::string(buf).compare("TEST") == 0) {//TODO remove/comment
+				pthread_mutex_lock(&print_mutex);
+				
+				broadcast("SUCCESS");
+				
+				pthread_mutex_unlock(&print_mutex);
 			}
 		}
 #ifdef DEBUG
@@ -209,7 +215,16 @@ void* monitor(void* vv){
 	pthread_exit(0);
 }
 
+void broadcast(string data) {
+	send("ALL", data);
+}
+
 void send(string ip, string data) {
+	if (ip.compare("ALL") == 0 && send(server_sock, data, data.length(), 0) == -1) {
+		std::cerr << "Local error when sending data to client." << std::endl;
+		return;
+	}
+	
 	struct addrinfo hints;
 	struct addrinfo* results;
 	
