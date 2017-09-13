@@ -12,7 +12,7 @@
 #define READ_WAIT_PERIOD 1000000
 //#define DEBUG
 
-struct Args{
+struct ConnectionInfo {
 	int sock;
 	int server;
 	int devices[20] = {0};
@@ -22,22 +22,17 @@ struct Args{
 	int target_dev;
 };
 
-int sock;
-int server_fd;
-struct sockaddr_in address;
-int opt;
-int addrlen;
-char buffer[1024];
+int server_sock;
+
 bool auth;
 bool ext;
-int device_count;
 
 //pthread_mutex_t recv_mutex     = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t print_mutex    = PTHREAD_MUTEX_INITIALIZER;
 
-void setup(Args* av){
+void setup(ConnectionInfo* av){
 
-	opt = 1;
+	int opt = 1;
 	av->address_length = sizeof(av->soc_address);
 	auth = false;
 	av->device_num = 0;
@@ -70,10 +65,12 @@ void setup(Args* av){
 		pthread_mutex_unlock( &print_mutex );
 		return;
 	}
+	
+	server_sock = av->server;//keep track of server socket
 }
 
 void* listen(void* rl){
-	struct Args *l = (struct Args*) rl;
+	struct ConnectionInfo *l = (struct ConnectionInfo*) rl;
 	if (listen(l->server, 3) < 0) {
 		// Handle Exception
 		pthread_mutex_lock( &print_mutex );
@@ -123,7 +120,7 @@ void* listen(void* rl){
 }
 
 void* read(void* rdn){
-	struct Args *vi = (struct Args*) rdn;
+	struct ConnectionInfo *vi = (struct ConnectionInfo*) rdn;
 	int target = vi->target_dev;
 
 	while(!ext){
@@ -169,7 +166,7 @@ void* monitor(void* vv){
 	std::cout << "Start Monitoring" << std::endl;
 	pthread_mutex_unlock( &print_mutex );
 #endif
-	struct Args *v = (struct Args*) vv;
+	struct ConnectionInfo *v = (struct ConnectionInfo*) vv;
 
 #ifdef DEBUG
 	pthread_mutex_lock( &print_mutex );
@@ -210,9 +207,34 @@ void* monitor(void* vv){
 	pthread_exit(0);
 }
 
+void send(string ip, string data) {
+	struct addrinfo hints;
+	struct addrinfo* results;
+	
+	hints.ai_family = AF_INET;
+	
+	if (getaddrinfo(ip.c_str(), NULL, &hints, &results)) {//resolve host ip
+		std::cerr << "Failed attempt to send message to client." << std::endl;
+		return;
+	}
+	
+	sockaddr_in client_addr = *results->ai_addr;//found client address
+	client_addr.sin_port = htons(&PORT);
+	
+	if (connect(server_sock, (struct sockaddr*) &client_addr, sizeof(struct sockaddr_in)) == -1) {
+		std::cerr < "Connection to client failed." << std::endl;//errno updated
+		return;
+	}
+	
+	if (send(server_sock, data, data.length(), 0) == -1) {
+		std::cerr << "Local error when sending data to client." << std::endl;
+		return;
+	}
+}
+
 int main(){
 
-	struct Args *a = new Args();
+	struct ConnectionInfo *a = new ConnectionInfo();
 
 	setup(a);
 
