@@ -1,4 +1,5 @@
 #include <iostream>
+#include <sstream>
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -14,10 +15,12 @@
 #define READ_WAIT_PERIOD 1000000
 //#define DEBUG
 
+using namespace std;
+
 struct ConnectionInfo {
 	int sock;
 	int server;
-	int devices[20] = {0};
+	int devices[20];
 	struct sockaddr_in soc_address;
 	int address_length;
 	int device_num;
@@ -31,6 +34,12 @@ bool ext;
 
 //pthread_mutex_t recv_mutex     = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t print_mutex    = PTHREAD_MUTEX_INITIALIZER;
+
+template <typename T> std::string toString(T t) {
+	ostringstream ss;
+	ss << t;
+	return ss.str();
+}
 
 void setup(ConnectionInfo* av){
 
@@ -98,7 +107,7 @@ void* listen(void* rl){
 			int valread = recv(l->devices[l->device_num], buffer, 1024, 0);
 //			pthread_mutex_unlock( &recv_mutex );
 
-			if(std::string(buffer) == "L000") {
+			if(std::string(buffer).compare("L000") == 0) {
 				auth = true;
 				printf("%s: Connect\n",buffer );
 			}
@@ -113,12 +122,46 @@ void* listen(void* rl){
 		auth = false;
 
 //		pthread_mutex_lock( &recv_mutex );
-		send(l->devices[l->device_num], std::to_string(l->device_num).c_str() , strlen(std::to_string(l->device_num).c_str()) , 0 );
+		send(l->devices[l->device_num], toString(l->device_num).c_str(), toString(l->device_num).length(), 0);
 		// TODO: Add device to the device array at the next available location
 //		pthread_mutex_unlock( &recv_mutex );
 		l->device_num = l->device_num + 1;
 	}
 	pthread_exit(0);
+}
+
+void send(string ip, string data) {
+	if (ip.compare("ALL") == 0 && send(server_sock, data.c_str(), data.length(), 0) == -1) {
+		std::cerr << "Local error when sending data to client." << std::endl;
+		return;
+	}
+	
+	struct addrinfo hints;
+	struct addrinfo* results;
+	
+	hints.ai_family = AF_INET;
+	
+	if (getaddrinfo(ip.c_str(), NULL, &hints, &results)) {//resolve host ip
+		std::cerr << "Failed attempt to send message to client." << std::endl;
+		return;
+	}
+	
+	sockaddr_in client_addr = *((struct sockaddr_in*) results->ai_addr);//found client address
+	client_addr.sin_port = htons(PORT);
+	
+	if (connect(server_sock, (struct sockaddr*) &client_addr, sizeof(struct sockaddr_in)) == -1) {
+		std::cerr << "Connection to client failed." << std::endl;//errno updated
+		return;
+	}
+	
+	if (send(server_sock, data.c_str(), data.length(), 0) == -1) {
+		std::cerr << "Local error when sending data to client." << std::endl;
+		return;
+	}
+}
+
+void broadcast(string data) {
+	send("ALL", data);
 }
 
 void* read(void* rdn){
@@ -141,7 +184,7 @@ void* read(void* rdn){
 			std::cout << "[Device " << std::to_string(target) << "] " << std::string(buf) << std::endl;
 			pthread_mutex_unlock( &print_mutex );
 #endif
-			if(std::string(buf) == "L000: Disconnect"){
+			if(std::string(buf).compare("L000: Disconnect") == 0){
 				pthread_mutex_lock( &print_mutex );
 				std::cout << std::string(buf) << std::endl;
 				pthread_mutex_unlock( &print_mutex );
@@ -213,40 +256,6 @@ void* monitor(void* vv){
 	rc = pthread_join(device_5, NULL);
 
 	pthread_exit(0);
-}
-
-void broadcast(string data) {
-	send("ALL", data);
-}
-
-void send(string ip, string data) {
-	if (ip.compare("ALL") == 0 && send(server_sock, data, data.length(), 0) == -1) {
-		std::cerr << "Local error when sending data to client." << std::endl;
-		return;
-	}
-	
-	struct addrinfo hints;
-	struct addrinfo* results;
-	
-	hints.ai_family = AF_INET;
-	
-	if (getaddrinfo(ip.c_str(), NULL, &hints, &results)) {//resolve host ip
-		std::cerr << "Failed attempt to send message to client." << std::endl;
-		return;
-	}
-	
-	sockaddr_in client_addr = *results->ai_addr;//found client address
-	client_addr.sin_port = htons(&PORT);
-	
-	if (connect(server_sock, (struct sockaddr*) &client_addr, sizeof(struct sockaddr_in)) == -1) {
-		std::cerr < "Connection to client failed." << std::endl;//errno updated
-		return;
-	}
-	
-	if (send(server_sock, data, data.length(), 0) == -1) {
-		std::cerr << "Local error when sending data to client." << std::endl;
-		return;
-	}
 }
 
 int main(){
