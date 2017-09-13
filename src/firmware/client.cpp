@@ -37,14 +37,33 @@ int main(int argc, char const *argv[]) {
 		return -1;
 	}
 
-	send(sock , SERIAL_NUM , strlen(SERIAL_NUM) , 0 );
+	send(sock, SERIAL_NUM, strlen(SERIAL_NUM), 0);
+	valread = recv(sock, buffer, 1024, 0);
+	printf("%s\n",buffer );
+	send(sock , "TEST" , 4, 0 );
 	valread = recv(sock, buffer, 1024, 0);
 	printf("%s\n",buffer );
 
-	while(getchar() != '\n');
+	char *msg;
+	size_t size;
+	std::cout << "\nType 'exit' to terminate client\n" << std::endl;
+	std::cout << ">> ";
+	getline(&msg, &size, stdin);
+	while(strncmp("exit", msg, 4)){
+		send(sock, msg, strlen(msg)-1, 0);
+		//std::cout << "Size: " << std::to_string(strlen(msg)) << std::endl;
+		char rmsg[1024] = {0};
+		valread = recv(sock, rmsg, 1024, 0);
+		//std::cout << std::string(msg) << std::endl;
+		printf("%s\n",rmsg );
+		std::cout << ">> ";
+		getline(&msg, &size, stdin);
+	}
 
-	std::string msg = std::string(SERIAL_NUM) + ": Disconnect";
-	send(sock, msg.c_str(), strlen(msg.c_str()), 0);
+	std::string mmsg = std::string(SERIAL_NUM) + ": Disconnect";
+	send(sock, mmsg.c_str(), strlen(mmsg.c_str()), 0);
+
+	std::cout << "Disconnected from Server\nConnection Terminated" << std::endl;
 
 	return 0;
 }

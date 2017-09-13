@@ -130,12 +130,14 @@ void* listen(void* rl){
 	pthread_exit(0);
 }
 
-void send(string ip, string data) {
-	if (ip.compare("ALL") == 0 && send(server_sock, data.c_str(), data.length(), 0) == -1) {
+void send(string ip, ConnectionInfo* conn, string data) {
+	data = data + '\0';
+	//if (ip.compare("ALL") == 0 && send(server_sock, data.c_str(), data.length(), 0) == -1) {
+	if (ip.compare("ALL") == 0 && send(conn->devices[0], data.c_str(), data.length(), 0) == -1) {
 		cerr << "Local error when sending data to client." << endl;
 		return;
 	}
-	
+	if(ip.compare("ALL") == 0) return;
 	struct addrinfo hints;
 	struct addrinfo* results;
 	
@@ -160,8 +162,8 @@ void send(string ip, string data) {
 	}
 }
 
-void broadcast(string data) {
-	send("ALL", data);
+void broadcast(ConnectionInfo* conn, string data) {
+	send("ALL", conn, data);
 }
 
 void* read(void* rdn){
@@ -181,7 +183,7 @@ void* read(void* rdn){
 //			pthread_mutex_unlock( &recv_mutex );
 #ifdef DEBUG
 			pthread_mutex_lock( &print_mutex );
-			cout << "[Device " << toString(target) << "] " << string(buf) << endl;
+			cout << "    [Device " << toString(target) << "] " << string(buf) << endl;
 			pthread_mutex_unlock( &print_mutex );
 #endif
 			if(string(buf).compare("L000: Disconnect") == 0){
@@ -191,10 +193,16 @@ void* read(void* rdn){
 				vi->device_num = vi->device_num - 1;
 				vi->devices[target] = -1;
 			} else if (string(buf).compare("TEST") == 0) {//TODO remove/comment
+				pthread_mutex_lock( &print_mutex );
+				cout << "    [Device " << toString(target) << "] " << string(buf) << endl;
+				pthread_mutex_unlock( &print_mutex );
+				broadcast(vi, "SUCCESS");
+			}
+			else{
 				pthread_mutex_lock(&print_mutex);
-				
-				broadcast("SUCCESS");
-				
+				cout << "    [Device " << toString(target) << "] " << string(buf) << endl;
+				string data = "[ERROR] Received Invalid Command: " + string(buf);
+				send(vi->devices[target], data.c_str(), data.length(), 0);
 				pthread_mutex_unlock(&print_mutex);
 			}
 		}
