@@ -150,12 +150,12 @@ void send(string ip, string data) {
 	client_addr.sin_port = htons(PORT);
 	
 	if (connect(server_sock, (struct sockaddr*) &client_addr, sizeof(struct sockaddr_in)) == -1) {
-		std::cerr << "Connection to client failed." << std::endl;//errno updated
+		std::cerr << "Connection to client failed." << endl;//errno updated
 		return;
 	}
 	
 	if (send(server_sock, data.c_str(), data.length(), 0) == -1) {
-		std::cerr << "Local error when sending data to client." << std::endl;
+		cerr << "Local error when sending data to client." << endl;
 		return;
 	}
 }
@@ -173,7 +173,7 @@ void* read(void* rdn){
 		if(vi->devices[target] > 0){
 #ifdef DEBUG
 			pthread_mutex_lock( &print_mutex );
-			std::cout << "[Device " << std::to_string(target) << "] " << "There is a device" << std::endl;
+			cout << "[Device " << toString(target) << "] " << "There is a device" << endl;
 			pthread_mutex_unlock( &print_mutex );
 #endif
 //			pthread_mutex_lock( &recv_mutex );
@@ -181,16 +181,16 @@ void* read(void* rdn){
 //			pthread_mutex_unlock( &recv_mutex );
 #ifdef DEBUG
 			pthread_mutex_lock( &print_mutex );
-			std::cout << "[Device " << std::to_string(target) << "] " << std::string(buf) << std::endl;
+			cout << "[Device " << toString(target) << "] " << string(buf) << endl;
 			pthread_mutex_unlock( &print_mutex );
 #endif
-			if(std::string(buf).compare("L000: Disconnect") == 0){
+			if(string(buf).compare("L000: Disconnect") == 0){
 				pthread_mutex_lock( &print_mutex );
-				std::cout << std::string(buf) << std::endl;
+				cout << string(buf) << endl;
 				pthread_mutex_unlock( &print_mutex );
 				vi->device_num = vi->device_num - 1;
 				vi->devices[target] = -1;
-			} else if (std::string(buf).compare("TEST") == 0) {//TODO remove/comment
+			} else if (string(buf).compare("TEST") == 0) {//TODO remove/comment
 				pthread_mutex_lock(&print_mutex);
 				
 				broadcast("SUCCESS");
@@ -201,7 +201,7 @@ void* read(void* rdn){
 #ifdef DEBUG
 		else{
 			pthread_mutex_lock( &print_mutex );
-			std::cout << "[Device " << std::to_string(target) << "] " << "No devices connected" << std::endl;
+			cout << "[Device " << toString(target) << "] " << "No devices connected" << endl;
 			pthread_mutex_unlock( &print_mutex );
 		}
 #endif
@@ -214,14 +214,14 @@ void* read(void* rdn){
 void* monitor(void* vv){
 #ifdef DEBUG
 	pthread_mutex_lock( &print_mutex );
-	std::cout << "Start Monitoring" << std::endl;
+	cout << "Start Monitoring" << endl;
 	pthread_mutex_unlock( &print_mutex );
 #endif
 	struct ConnectionInfo *v = (struct ConnectionInfo*) vv;
 
 #ifdef DEBUG
 	pthread_mutex_lock( &print_mutex );
-	std::cout << "Monitor Devices: " << std::to_string(v->device_num) << std::endl;
+	cout << "Monitor Devices: " << toString(v->device_num) << endl;
 	pthread_mutex_unlock( &print_mutex );
 #endif
 
