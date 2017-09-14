@@ -1,293 +1,163 @@
 #include <iostream>
-#include <sstream>
-#include <stdio.h>
 #include <unistd.h>
-#include <sys/types.h>
+#include <string.h>
+#include <map>
+#include <list>
 #include <sys/socket.h>
-#include <stdlib.h>
 #include <netinet/in.h>
-#include <string>
-#include <pthread.h>
-#include <netdb.h>
-#include <vector>
+#include <arpa/inet.h>
 
 #define PORT 8080
-#define READ_WAIT_PERIOD 1000000
-//#define DEBUG
+#define LISTEN_QUEUE_SIZE 5
+#define MESSAGE_SIZE 1024
 
 using namespace std;
 
-struct ConnectionInfo {
-	int sock;
-	int server;
-	int devices[20];
-	struct sockaddr_in soc_address;
-	int address_length;
-	int device_num;
-	int target_dev;
-};
+int sockfd;
 
-int server_sock;
+typedef void cmd_func(const int c_fd, const string msg);
+typedef map<string, cmd_func*> cmd_map;
 
-bool auth;
-bool ext;
+cmd_map commands;
+map<string, int> by_ip;
 
-//pthread_mutex_t recv_mutex     = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t print_mutex    = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mtx = PTHREAD_MUTEX_INITIALIZER;
 
-template <typename T> string toString(T t) {
-	ostringstream ss;
-	ss << t;
-	return ss.str();
-}
+void* accept_devices(void* c_addr);
+void* read_client(void* c_fd_p);
+void client_exit(int c_fd, string msg);
 
-void setup(ConnectionInfo* av){
-
-	int opt = 1;
-	av->address_length = sizeof(av->soc_address);
-	auth = false;
-	av->device_num = 0;
-	av->target_dev = -1;
-
-	if((av->server = socket(AF_INET, SOCK_STREAM, 0)) == 0){
-		// Handle Exception
-		pthread_mutex_lock( &print_mutex );
-		cout << "Error creating socket" << endl;
-		pthread_mutex_unlock( &print_mutex );
-		return;
-	}
-
-	if (setsockopt(av->server, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))){
-		// Handle Exception
-		pthread_mutex_lock( &print_mutex );
-		cout << "Error setting socket options" << endl;
-		pthread_mutex_unlock( &print_mutex );
-		return;
-	}
-
-	av->soc_address.sin_family = AF_INET;
-	av->soc_address.sin_addr.s_addr = INADDR_ANY;
-	av->soc_address.sin_port = htons( PORT );
-
-	if (bind(av->server, (struct sockaddr *)&av->soc_address, av->address_length)<0) {
-		// Handle Exception
-		pthread_mutex_lock( &print_mutex );
-		cout << "Error binding port" << endl;
-		pthread_mutex_unlock( &print_mutex );
-		return;
+int main(int argc, char const* argv[]) {
+	commands["exit"] = client_exit;
+	
+	sockfd = socket(AF_INET, SOCK_STREAM, 0);
+	
+	if (sockfd == -1) {
+		cerr << "Failure to create server socket." << endl;
+		return 1;
 	}
 	
-	server_sock = av->server;//keep track of server socket
-}
-
-void* listen(void* rl){
-	struct ConnectionInfo *l = (struct ConnectionInfo*) rl;
-	if (listen(l->server, 3) < 0) {
-		// Handle Exception
-		pthread_mutex_lock( &print_mutex );
-		cout << "Error listening" << endl;
-		pthread_mutex_unlock( &print_mutex );
-
-		pthread_exit(0);
-	}
-	char buffer[1024] = {0};
-
-	while(!ext){
-		while(!auth){
-
-			if ((l->devices[l->device_num] = accept(l->server, (struct sockaddr *)&l->soc_address, (socklen_t*)&l->address_length))<0) {
-				// Handle Exception
-				pthread_mutex_lock( &print_mutex );
-				cout << "Error accepting connection" << endl;
-				pthread_mutex_unlock( &print_mutex );
-				pthread_exit(0);
-			}
-
-//			pthread_mutex_lock( &recv_mutex );
-			int valread = recv(l->devices[l->device_num], buffer, 1024, 0);
-//			pthread_mutex_unlock( &recv_mutex );
-
-			if(string(buffer).compare("L000") == 0) {
-				auth = true;
-				printf("%s: Connect\n",buffer );
-			}
-			else {
-				string msg = "Authentication Failure";
-				printf("%s: %s\n",buffer, msg.c_str());
-//				pthread_mutex_lock( &recv_mutex );
-				send(l->devices[l->device_num], msg.c_str(), msg.length(), 0);
-//				pthread_mutex_unlock( &recv_mutex );
-			}
-		}
-		auth = false;
-
-//		pthread_mutex_lock( &recv_mutex );
-		send(l->devices[l->device_num], toString(l->device_num).c_str(), toString(l->device_num).length(), 0);
-		// TODO: Add device to the device array at the next available location
-//		pthread_mutex_unlock( &recv_mutex );
-		l->device_num = l->device_num + 1;
-	}
-	pthread_exit(0);
-}
-
-void send(string ip, ConnectionInfo* conn, string data) {
-	data = data + '\0';
-	//if (ip.compare("ALL") == 0 && send(server_sock, data.c_str(), data.length(), 0) == -1) {
-	if (ip.compare("ALL") == 0 && send(conn->devices[0], data.c_str(), data.length(), 0) == -1) {
-		cerr << "Local error when sending data to client." << endl;
-		return;
-	}
-	if(ip.compare("ALL") == 0) return;
-	struct addrinfo hints;
-	struct addrinfo* results;
+	struct sockaddr_in hints;
 	
-	hints.ai_family = AF_INET;
+	hints.sin_family = AF_INET;
+	hints.sin_addr.s_addr = INADDR_ANY;
+	hints.sin_port = htons(PORT);
 	
-	if (getaddrinfo(ip.c_str(), NULL, &hints, &results)) {//resolve host ip
-		cerr << "Failed attempt to send message to client." << endl;
-		return;
+	if (bind(sockfd, (struct sockaddr*) &hints, sizeof(hints)) == -1) {
+		cerr << "Could not assign a name to the server socket." << endl;
+		return 1;
 	}
 	
-	sockaddr_in client_addr = *((struct sockaddr_in*) results->ai_addr);//found client address
-	client_addr.sin_port = htons(PORT);
-	
-	if (connect(server_sock, (struct sockaddr*) &client_addr, sizeof(struct sockaddr_in)) == -1) {
-		cerr << "Connection to client failed." << endl;//errno updated
-		return;
+	if (listen(sockfd, LISTEN_QUEUE_SIZE) == -1) {
+		cerr << "Failed to listen for connections on port " << PORT << "." << endl;
+		return 1;
 	}
 	
-	if (send(server_sock, data.c_str(), data.length(), 0) == -1) {
-		cerr << "Local error when sending data to client." << endl;
-		return;
+	//create accept devices thread so the server can still send data concurrently
+	
+	pthread_t acc_dev;
+	
+	int err = pthread_create(&acc_dev, NULL, accept_devices, (void*) &hints);
+	
+	if (err != 0) {
+		cerr << "Failed to create \"acc_dev\" thread." << endl;
+		return 1;
 	}
-}
-
-void broadcast(ConnectionInfo* conn, string data) {
-	send("ALL", conn, data);
-}
-
-void* read(void* rdn){
-	struct ConnectionInfo *vi = (struct ConnectionInfo*) rdn;
-	int target = vi->target_dev;
-
-	while(!ext){
-		char buf[2048] = {0};
-		if(vi->devices[target] > 0){
-#ifdef DEBUG
-			pthread_mutex_lock( &print_mutex );
-			cout << "[Device " << toString(target) << "] " << "There is a device" << endl;
-			pthread_mutex_unlock( &print_mutex );
-#endif
-//			pthread_mutex_lock( &recv_mutex );
-			int val = recv(vi->devices[target], buf, 2048, 0);
-//			pthread_mutex_unlock( &recv_mutex );
-#ifdef DEBUG
-			pthread_mutex_lock( &print_mutex );
-			cout << "    [Device " << toString(target) << "] " << string(buf) << endl;
-			pthread_mutex_unlock( &print_mutex );
-#endif
-			if(string(buf).compare("L000: Disconnect") == 0){
-				pthread_mutex_lock( &print_mutex );
-				cout << string(buf) << endl;
-				pthread_mutex_unlock( &print_mutex );
-				vi->device_num = vi->device_num - 1;
-				vi->devices[target] = -1;
-			} else if (string(buf).compare("TEST") == 0) {//TODO remove/comment
-				pthread_mutex_lock( &print_mutex );
-				cout << "    [Device " << toString(target) << "] " << string(buf) << endl;
-				pthread_mutex_unlock( &print_mutex );
-				broadcast(vi, "SUCCESS");
-			}
-			else{
-				pthread_mutex_lock(&print_mutex);
-				cout << "    [Device " << toString(target) << "] " << string(buf) << endl;
-				string data = "[ERROR] Received Invalid Command: " + string(buf);
-				send(vi->devices[target], data.c_str(), data.length(), 0);
-				pthread_mutex_unlock(&print_mutex);
-			}
-		}
-#ifdef DEBUG
-		else{
-			pthread_mutex_lock( &print_mutex );
-			cout << "[Device " << toString(target) << "] " << "No devices connected" << endl;
-			pthread_mutex_unlock( &print_mutex );
-		}
-#endif
-
-		usleep(READ_WAIT_PERIOD);
+	
+	err = pthread_join(acc_dev, NULL);
+	
+	if (err != 0) {
+		cerr << "Failed to join \"acc_dev\" thread." << endl;
+		return 1;
 	}
-	pthread_exit(0);
-}
-
-void* monitor(void* vv){
-#ifdef DEBUG
-	pthread_mutex_lock( &print_mutex );
-	cout << "Start Monitoring" << endl;
-	pthread_mutex_unlock( &print_mutex );
-#endif
-	struct ConnectionInfo *v = (struct ConnectionInfo*) vv;
-
-#ifdef DEBUG
-	pthread_mutex_lock( &print_mutex );
-	cout << "Monitor Devices: " << toString(v->device_num) << endl;
-	pthread_mutex_unlock( &print_mutex );
-#endif
-
-	pthread_t device_0, device_1, device_2, device_3, device_4, device_5;
-
-	int rc;
-	// TODO: Add dev number to struct and change it every time create new thread to read
-	v->target_dev = 0;
-	rc = pthread_create(&device_0, NULL, read, (void*)v);
-	usleep(100);
-	v->target_dev = 1;
-	rc = pthread_create(&device_1, NULL, read, (void*)(v));
-	usleep(100);
-	v->target_dev = 2;
-	rc = pthread_create(&device_2, NULL, read, (void*)(v));
-	usleep(100);
-	v->target_dev = 3;
-	rc = pthread_create(&device_3, NULL, read, (void*)(v));
-	usleep(100);
-	v->target_dev = 4;
-	rc = pthread_create(&device_4, NULL, read, (void*)(v));
-	usleep(100);
-	v->target_dev = 5;
-	rc = pthread_create(&device_5, NULL, read, (void*)(v));
-	usleep(100);
-
-	rc = pthread_join(device_0, NULL);
-	rc = pthread_join(device_1, NULL);
-	rc = pthread_join(device_2, NULL);
-	rc = pthread_join(device_3, NULL);
-	rc = pthread_join(device_4, NULL);
-	rc = pthread_join(device_5, NULL);
-
-	pthread_exit(0);
-}
-
-int main(){
-
-	struct ConnectionInfo *a = new ConnectionInfo();
-
-	setup(a);
-
-	int rc;
-
-	pthread_t tlisten, tmonitor;
-	rc = pthread_create(&tlisten, NULL, listen, (void *) a);
-	// TODO: Check if rc is proper return code
-	rc = pthread_create(&tmonitor, NULL, monitor, (void *) a);
-	// TODO: Check if rc is proper return code
-
-	rc = pthread_join(tlisten, NULL);
-	rc = pthread_join(tmonitor, NULL);
-	// TODO: Check rc values
-	//std::thread tlisten (listen, (void*) a);
-	//std::thread tmonitor (monitor);
-
-	//tlisten.join();
-	//tmonitor.join();
-
+	
 	return 0;
+}
+
+void* accept_devices(void* c_addr) {
+	sockaddr_in hints = *(sockaddr_in*) c_addr;
+	
+	while(true) {
+		int h_size = sizeof(hints);
+		int c_fd = accept(sockfd, (struct sockaddr*) &hints, (socklen_t*) &h_size);//TODO correct size? blocks until connection is found?
+	
+		if (c_fd == -1) {
+			cerr << "Failed to establish a connection with a client." << endl;
+			pthread_exit(0);
+		}
+	
+		string ip = inet_ntoa(hints.sin_addr);
+		
+		cout << "Device " << c_fd << " connected from IP: " << ip << endl;
+		
+		string msg = "Connection established.";
+		send(c_fd, msg.c_str(), msg.length(), 0);
+		
+		pthread_mutex_lock(&mtx);
+		by_ip.insert(pair<string, int>(ip, c_fd));
+		pthread_mutex_unlock(&mtx);
+		
+		pthread_t dev_rc;
+		
+		int err = pthread_create(&dev_rc, NULL, read_client, (void*) &c_fd);
+	
+		if (err != 0) {
+			cerr << "Failed to create \"dev_rc\" thread for device at IP: " << ip << endl;
+			pthread_exit(0);
+		}
+	
+		err = pthread_join(dev_rc, NULL);
+	
+		if (err != 0) {
+			cerr << "Failed to join \"dev_rc\" thread for device at IP: " << ip << endl;
+			pthread_exit(0);
+		}
+	}
+}
+
+list<string> split(string line, char delimiter){
+    list<string> pieces;
+	string save = string(line);
+    int pos = 0;
+    while ((pos = save.find(delimiter)) != string::npos) {
+        pieces.push_back(save.substr(0, pos));
+        save.erase(0, pos + 1);
+    }
+    return pieces;
+}
+
+void* read_client(void* c_fd_p) {
+	int c_fd = *(int*) c_fd_p;
+	
+	int len = 0;
+	char msg[MESSAGE_SIZE];
+	
+	while(true) {
+		len = recv(c_fd, msg, MESSAGE_SIZE, 0);
+		
+		string s_msg(msg);
+		
+		if (s_msg.length() == 0) {//client is disconnected, the buffer is just being read constantly
+			client_exit(c_fd, "");
+		}
+		
+		memset(&msg, 0, MESSAGE_SIZE);//clear the buffer
+		list<string> pieces = split(s_msg, ' ');//split on whitespace
+		string key = pieces.front();
+		
+		pthread_mutex_lock(&mtx);
+		
+		if (commands.count(key) == 0) {
+			cout << "[Device " << c_fd << "]" << s_msg << endl;
+		} else {
+			commands.find(key)->second(c_fd, s_msg);
+		}
+		
+		pthread_mutex_unlock(&mtx);
+	}
+}
+
+void client_exit(const int c_fd, const string msg) {
+	cout << "Device " << c_fd << " disconnected." << endl;
+	pthread_exit(0);
 }
