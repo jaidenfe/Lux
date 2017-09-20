@@ -1,31 +1,30 @@
-#include <iostream>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
+#include "client.h"
 
-#define PORT 8080
-#define MESSAGE_SIZE 1024
-
-using namespace std;
-
-int sockfd;
-
+int sockfd = -1;
+bool connected = false;
 struct sockaddr_in c_addr, s_addr;
-
-char buffer[MESSAGE_SIZE];
-
 pthread_mutex_t mtx = PTHREAD_MUTEX_INITIALIZER;
 
-int main(int argc, char const* argv[]) {
+void client_safe_print(string msg) {
+	pthread_mutex_lock(&mtx);
+	cout << msg << endl;
+	pthread_mutex_unlock(&mtx);
+}
+
+string client_safe_read() {
+	string msg;
+	pthread_mutex_lock(&mtx);
+	cin >> msg;
+	pthread_mutex_unlock(&mtx);
+	return msg;
+}
+
+bool client_connect(string addr) {
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	
 	if (sockfd == -1) {
 		cerr << "Failure to create client socket." << endl;
-		return 1;
+		return false;
 	}
 	
 	memset(&s_addr, 0, sizeof(s_addr));
@@ -33,79 +32,92 @@ int main(int argc, char const* argv[]) {
 	s_addr.sin_family = AF_INET;
 	s_addr.sin_port = htons(PORT);
 	
-	string addr;
-	
-	if (argc == 1) {
-		cout << "Address of server: ";
-		cin >> addr;
-		cout << endl;
-	} else if (argc == 2) {
-		addr = argv[1];
-	} else {
-		cerr << "Too many arguments provided in client execution. Attempting to continue anyways." << endl;
-	}
-	
 	if (inet_pton(AF_INET, addr.c_str(), &s_addr.sin_addr) < 1) {
 		cerr << "Could not convert given address to an address structure." << endl;
-		return 1;
+		return false;
 	}
 	
 	if (connect(sockfd, (const sockaddr*) &s_addr, sizeof(s_addr)) == -1) {
 		cerr << "Socket error, could not connect to server." << endl;
-		return 1;
+		return false;
 	}
 	
-	cout << "Connected to server successfully, type \"exit\" to disconnect." << endl;
+	connected = true;
+	client_safe_print(client_recv());//recieve, print confirmation
 	
-	pid_t pid = fork();
+	return true;
+}
+
+void client_disconnect() {
+	if (!connected) {
+		cerr << "Attempted to disconnect while not connected." << endl;
+		return;
+	}	
 	
-	if (pid == 0) {//child, send process
+	client_send("exit");
+	sockfd = -1;
+	connected = false;
+}
+
+bool client_is_connected() {
+	if (sockfd == -1) {
+		connected = false;
+		return false;
+	}
+	string msg = "test";
+	char rcv[MESSAGE_SIZE];
 	
-		string msg;
-		char* c_msg;
+	memset(&rcv, 0, MESSAGE_SIZE);
 	
-		while(msg.compare("exit") != 0) {
-			cin.getline(c_msg, MESSAGE_SIZE);//blocks until input
-			msg = string(c_msg);
-			
-			if (msg.length() == 0) {
-				msg = "\0";//to prevent disconnect after manually sent empty message
-			}
-			
-			pthread_mutex_lock(&mtx);
-			
-			send(sockfd, msg.c_str(), msg.length(), 0);
-			
-			pthread_mutex_unlock(&mtx);
-		}
-		
-		cout << "Terminated." << endl;
-		return 0;
-		
-	} else if (pid > 0) {//parent, rcv process
+	pthread_mutex_lock(&mtx);
+	send(sockfd, msg.c_str(), msg.length(), 0);
+	recv(sockfd, rcv, 7/*SUCCESS*/, 0);
+	pthread_mutex_unlock(&mtx);
 	
-		int len = 0;
-		char msg[MESSAGE_SIZE];
-		
-		while(true) {
-			pthread_mutex_lock(&mtx);
-			len = recv(sockfd, msg, MESSAGE_SIZE, 0);//blocks until recieve
-			pthread_mutex_unlock(&mtx);
-			
-			if (msg[0] == 0) {//server disconnected
-				cout << "Connection terminated by server." << endl;
-				return 0;
-			}
-			
-			cout << "[Server]" << msg << endl;
-			
-			memset(&msg, 0, MESSAGE_SIZE);
-		}
-		
-	} else {//error
-		cerr << "Failed to fork client send/rcv processes." << endl;
-		return 1;
+	connected = rcv[0] != 0;
+	
+	return connected;
+}
+
+void client_send(string msg) {
+	if (!connected) {
+		cerr << "Attempted to send while not connected." << endl;
+		return;
 	}
 	
-	return 0;
+	/*
+	This allows for a message of MESSAGE_SIZE to be sent each time, meaning more bytes are sent,
+	but there is no possibility that calling send() twice in rapid succession will combine messages.
+	*/
+	
+	char* a = new char[MESSAGE_SIZE + 1];
+	memcpy(a, msg.c_str(), MESSAGE_SIZE);
+	a[MESSAGE_SIZE] = 0;
+	
+	pthread_mutex_lock(&mtx);	
+	send(sockfd, a, MESSAGE_SIZE, 0);
+	pthread_mutex_unlock(&mtx);
+}
+
+string client_recv() {
+	if (!connected) {
+		cerr << "Attempted to recieve while not connected." << endl;
+		return "";
+	}
+	char msg[MESSAGE_SIZE];
+	
+	memset(&msg, 0, MESSAGE_SIZE);
+	
+	pthread_mutex_lock(&mtx);
+	recv(sockfd, msg, MESSAGE_SIZE, 0);
+	pthread_mutex_unlock(&mtx);
+	
+	if (msg[0] == 0) {//server disconnected
+		cerr << "Server connection lost." << endl;
+		
+		sockfd = -1;
+		connected = false;
+	}
+
+	return string(msg);
 }

@@ -1,5 +1,6 @@
 #include <iostream>
 #include <unistd.h>
+#include <signal.h>
 #include <string.h>
 #include <map>
 #include <list>
@@ -26,9 +27,11 @@ pthread_mutex_t mtx = PTHREAD_MUTEX_INITIALIZER;
 void* accept_devices(void* c_addr);
 void* read_client(void* c_fd_p);
 void client_exit(int c_fd, string msg);
+void client_test(int c_fd, string msg);
 
 int main(int argc, char const* argv[]) {
 	commands["exit"] = client_exit;
+	commands["test"] = client_test;
 	
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	
@@ -53,9 +56,7 @@ int main(int argc, char const* argv[]) {
 		return 1;
 	}
 	
-	//create accept devices thread so the server can still send data concurrently
-	
-	pthread_t acc_dev;
+	pthread_t acc_dev;//create accept devices thread so the server can still send data concurrently
 	
 	int err = pthread_create(&acc_dev, NULL, accept_devices, (void*) &hints);
 	
@@ -79,7 +80,7 @@ void* accept_devices(void* c_addr) {
 	
 	while(true) {
 		int h_size = sizeof(hints);
-		int c_fd = accept(sockfd, (struct sockaddr*) &hints, (socklen_t*) &h_size);//TODO correct size? blocks until connection is found?
+		int c_fd = accept(sockfd, (struct sockaddr*) &hints, (socklen_t*) &h_size);
 	
 		if (c_fd == -1) {
 			cerr << "Failed to establish a connection with a client." << endl;
@@ -129,11 +130,12 @@ list<string> split(string line, char delimiter){
 void* read_client(void* c_fd_p) {
 	int c_fd = *(int*) c_fd_p;
 	
-	int len = 0;
 	char msg[MESSAGE_SIZE];
 	
 	while(true) {
-		len = recv(c_fd, msg, MESSAGE_SIZE, 0);
+		memset(&msg, 0, MESSAGE_SIZE);//clear the buffer
+		
+		recv(c_fd, msg, MESSAGE_SIZE, 0);
 		
 		string s_msg(msg);
 		
@@ -141,23 +143,41 @@ void* read_client(void* c_fd_p) {
 			client_exit(c_fd, "");
 		}
 		
-		memset(&msg, 0, MESSAGE_SIZE);//clear the buffer
 		list<string> pieces = split(s_msg, ' ');//split on whitespace
 		string key = pieces.front();
 		
-		pthread_mutex_lock(&mtx);
-		
 		if (commands.count(key) == 0) {
+			pthread_mutex_lock(&mtx);
 			cout << "[Device " << c_fd << "]" << s_msg << endl;
+			pthread_mutex_unlock(&mtx);
 		} else {
+			pthread_mutex_lock(&mtx);
+			cout << "Device " << c_fd << " ran command: " << key << endl;
+			pthread_mutex_unlock(&mtx);
+			
 			commands.find(key)->second(c_fd, s_msg);
 		}
-		
-		pthread_mutex_unlock(&mtx);
 	}
 }
 
 void client_exit(const int c_fd, const string msg) {
-	cout << "Device " << c_fd << " disconnected." << endl;
+	struct sockaddr_in addr;
+	int a_size = sizeof(addr);
+	
+	if (getpeername(c_fd, (sockaddr*) &addr, (socklen_t*) &a_size)) {
+		cerr << "Could not retrieve peer address for descriptor: " << c_fd << endl;
+		return;
+	}
+	
+	string ip = inet_ntoa(addr.sin_addr);
+	
+	by_ip.erase(ip);//if ip exists in the map
+	
+	cout << "Device " << c_fd << " (" << ip << ") disconnected." << endl;
 	pthread_exit(0);
+}
+
+void client_test(const int c_fd, const string msg) {
+	string succ = "SUCCESS";//7 long
+	send(c_fd, succ.c_str(), succ.length(), 0);
 }
