@@ -1,0 +1,106 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+	<title> Lux: Wireless Home Illumination </title>
+	<link rel = "shortcut icon" href = "images/Lightbulb.ico">
+	<link rel = "stylesheet" type = "text/css" href = "Luxstyle.css">
+	<meta name = "google-signin-client_id" content = "176473481821-sl7ns58mprbsuer3sr1q08nkltpgssbg.apps.googleusercontent.com">
+	<meta name = "viewport" content = "width=device-width, initial-scale=1.0">
+	<script src = "https://apis.google.com/js/api.js">
+		gapi.load('auth2', function() {
+			gapi.auth2.init();
+		});
+		/*
+		This function is used to signout the current Google user
+		No arguments
+		Returns no value
+		*/
+		function signOut() {
+			var auth2 = gapi.auth2.getAuthInstance();
+			auth2.signOut().then(function signOutLog() {
+				console.log('User signed out.');
+			});
+		}
+	</script>
+</head>
+
+<body>
+	<div id = "wrapper">
+		<div id = "header">
+			<h1> Lux: Wireless Home Illumination </h1>
+		</div>
+		<br>
+		<ul id = "nav">
+			<li> <a href = "index.html"> Home </a> </li>
+			<li> <a href = "Luxabout.html"> About </a> </li>
+			<li> <a href = "LuxLogin.html"> Login </a> </li>
+			<li style = "float:right"> <a class = "active" href = "Luxcontact.html"> Contact </a> </li>
+		</ul>
+		<br>
+		<table id = "user_devices">
+			<tr>
+				<th> Device Name </th>
+				<th> Group Name </th>
+				<th> Device Status </th>
+				<th> Unregister Device </th>
+			</tr>
+			<tr>
+				<td> <form> <input type = "text" name = "devicename"> </form> <button class = "button"> change </button> </td>
+				<td> <form> <input type = "text" name = "groupname"> </form> <button class = "button"> change </button> </td>
+				<td> <img src = "images/lightoff.jpg" id = "on/off_button" width = "16px"> <button onClick = "temp_change_state()"> Turn on/off </button> </td>
+				<td> <form> <button class = "button"> Remove device  </button> </form> </td>
+			</tr>
+		</table>
+		<br>
+		<button class = "button"> Add new device </button>
+		<br>
+		<br>
+		<button class = "button signout-in" onclick = "signOut();"> Sign out </button> 
+		<script>
+		var temp_state = 'off';
+		function temp_change_state() {
+			var temp = document.getElementById("on/off_button");
+			if (temp_state == 'off') {
+				temp.src = "images/lighton.jpg";
+				temp_state = 'on';
+			}
+			else {
+				temp.src = "images/lightoff.jpg";
+				temp_state = 'off';
+			}
+		}
+	</script>
+		<!-- Be able to generate a list of registered devices based on 
+		a signed-in user's Google profile ID 
+		
+		Use a script to generate new rows based on how many registered devices come up
+		Use table insertRow method, loop until there are no more devices for that user, then 
+		add a button to add new devices
+		
+		<script>
+			devices = create new object describing json message
+			dbParam = JSON.stringify(devices);
+			var xmlhttp = new XMLHttpRequest();
+			xmlhttp.onreadystatechange = function() {
+				if (this.readyState == 4 && this.status == 200) {
+					myDevices = JSON.parse(this.responseText);
+					create the table
+					for (objects in myDevices) {
+						create new rows as text
+						add buttons/drop-down menus/etc
+					}
+					add the end label for the table
+					document.getElementById("name of table").innerHTML = name of text
+				}
+			}
+			xmlhttp.open("POST", "name of file on server to send to", true);
+			xmlhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+			xmlhttp.send("x=" + dbParam);
+		</script>
+		
+		Always include a button at the botton of the list to add a new devices
+		Include switch for on/off, option to remove device, create new group?, dimmer dial?
+		-->
+	</div>
+</body>
+</html>

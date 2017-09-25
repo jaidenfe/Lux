@@ -1,0 +1,66 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+	<title> Lux: Wireless Home Illumination </title>
+	<link rel = "shortcut icon" href = "images/Lightbulb.ico">
+	<link rel = "stylesheet" type = "text/css" href = "Luxstyle.css">
+	<script src = "https://apis.google.com/js/platform.js" async defer>
+	gapi.load('auth2', function() {
+		gapi.auth2.init();
+	});
+	</script>
+	<meta name = "google-signin-client_id" content = "176473481821-sl7ns58mprbsuer3sr1q08nkltpgssbg.apps.googleusercontent.com">
+	<meta name = "viewport" content = "width=device-width, initial-scale=1.0">
+</head>
+
+<body>
+	<div id = "wrapper">
+		<div id = "header">
+			<h1> Lux: Wireless Home Illumination </h1>
+		</div>
+		<br>
+		<ul id = "nav">
+			<li> <a href = "index.html"> Home </a> </li>
+			<li> <a href = "Luxabout.html"> About </a> </li>
+			<li> <a href = "LuxLogin.html"> Login </a> </li>
+			<li style = "float:right"> <a href = "Luxcontact.html"> Contact </a> </li>
+		</ul>
+		<p> 
+			In order to see your currently registered devices, please log-in via your Google profile,
+			to register your new wireless Lux device or edit your currently registered and available devices. 
+		</p>
+		<!--<button div class = "button signout-in g-signin2" data -onsuccess = "onSignIn"> Login </div>
+		
+		<div class = "g-signin2" data-onsuccess = "onSignIn"> -->
+			<a href = "Luxverified.html" class = "button signout-in"> "Sign in" </a>
+			<!-- <button class = "button signout-in" onclick = "onSignIn"> Sign in </button> -->
+		</div>
+		<script>
+			/*
+			This function is used to log-in a Google user, as well as obtain various information 
+			about their account to identify theme
+			googleUser = the user logging in
+			Returns no value
+			*/
+			function onSignIn(googleUser) {
+				var profile = googleUser.getBasicProfile();
+				console.log('Signed in as: ' + profile.getName());
+				var id_token = googleUser.getAuthResponse().id_token;
+				//TODO send the ID token to your server with an HTTPTS POST request
+				/*
+				var xhr = new XMLHttpRequest();
+				xhr.open('POST', 'https://yourbackend.example.com/tokensignin');
+				xhr.setRequestHeader('Content-Type, 'application/x-www-form-urlencoded);
+				xhr.onload = function() {
+					console.log('Signed in as: ' + xhr.reponseText);
+				};
+				xhr.send('idtoken=; + id_token);
+				*/
+				});
+			};
+			
+		</script>
+
+	</div>
+</body>
+</html>
