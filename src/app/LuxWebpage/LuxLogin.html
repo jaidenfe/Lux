@@ -10,7 +10,7 @@
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
     
 	<!-- Bootstrap core CSS -->
-    <link href="../../../../../dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="bootstrap-4.0.0-beta/dist/css/bootstrap.min.css" rel="stylesheet">
 
     <!-- Custom styles for this template -->
     <link href="signin.css" rel="stylesheet">
@@ -57,7 +57,7 @@
           </label>
         </div>
 		-->
-        <button class="btn btn-lg btn-primary btn-block" type="submit" onclick = "sendRequest('username:' + document.getElementById('inputEmail').value + ' password:' + document.getElementById('inputPassword').value");>Sign in</button>
+        <button class="btn btn-lg btn-primary btn-block" type="submit" onclick = sendRequest("{'id': " + document.getElementById('inputEmail').value + ", 'pass:' " + document.getElementById('inputPassword').value);>Sign in</button>
       </form>
 	  
 	  <script>
@@ -72,29 +72,24 @@
 				checkFailure(this);
 			}
 		}
-		xhttp.open("POST", url, true);
+		xhttp.open("POST", "../app.py", true);
 		xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
 		xhttp.send(param);
 	  }
 	  
 	  function onSignIn(xhttp) {
 		// Check to see if any errors occurred when trying to sign-in
-		if (xhttp.responseText == "login: success") {
+		if (xhttp.responseText == "{'login': 'success'") {
 			// send the user to the verified page
 			window.location("Luxverified.html");
 		}
 	  }
 	  
 	  function checkFailure(xhttp) {
-		if (xhttp.responseText == "login: emailfailed") {
+		if (xhttp.responseText == "{'login': 'failed'}") {
 			// If the email does not exist in our database
-			var emailAlert = "<div class = 'alert alert-danger' role = 'alert'> <button type = 'button' class = 'close' data-dismiss = 'alert' aria-label = 'Close'> <span aria-hidden = 'true'>&times;</span> </button> That username does not exist in our database </div>";
-			document.getElementById("invalid_alert").innerHTML = emailAlert;
-		}
-		else if (xhttp.responseText == "login: passwordfailed") {
-			// If the password included in the request was incorrect
-			var passwordAlert = "<div class = 'alert alert-danger' role = 'alert'> <button type = 'button' class = 'close' data-dismiss = 'alert' aria-label = 'Close'> <span aria-hidden = 'true'>&times;</span> </button> That password is incorrect </div>";
-			document.getElementById("invalid_alert").innerHTML = passwordAlert;
+			var invalidAlert = "<div class = 'alert alert-danger' role = 'alert'> <button type = 'button' class = 'close' data-dismiss = 'alert' aria-label = 'Close'> <span aria-hidden = 'true'>&times;</span> </button> Invalid. Check login information </div>";
+			document.getElementById("invalid_alert").innerHTML = invalidAlert;
 		}
 	  }
 	  </script>

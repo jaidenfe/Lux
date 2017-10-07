@@ -10,13 +10,13 @@
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
     
 	<!-- Bootstrap core CSS -->
-    <link href="../../../../../dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="bootstrap-4.0.0-beta/dist/css/bootstrap.min.css" rel="stylesheet">
 
     <!-- Custom styles for this template -->
     <link href="jumbotron.css" rel="stylesheet">
   </head>
 
-  <body onload = "sendRequest('/path', onPageLoad, 'table')">
+  <body onload = "sendRequest(onPageLoad, '{'cmd':'status_req'}')">
 
     <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
       <a class="navbar-brand" href="index.html">LUX</a>
@@ -65,8 +65,8 @@
 		<div id = 'user_devices'>
 		
 		</div>
-		<hr>
-		<button class = "btn" onclick = "addDevice"> Add new device </button>
+		
+		<!-- <button class = "btn" onclick = "addDevice"> Add new device </button> -->
 		
 		<script>
 		function sendRequest(url, selFunction, data) {
@@ -74,47 +74,78 @@
 			var xhttp = new XMLHttpRequest();
 			xhttp.onreadystatechange = function() {
 				if (this.readyState == 4 && this.status == 200) {
+					if (checkFailure) {
+						break;
+					}
 					selFunction(this);
 				}
-				if (this.status == 501) {
-					checkFailure(this);
-				}
 			}
-			xhttp.open("POST", url, true);
+			xhttp.open("POST", "../app.py", true);
 			xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
 			xhttp.send(param);
 		}
 		
 		function checkFailure(xhttp) {
-			if (xhttp.responseText == "table: failed") {
+			if (xhttp.responseText == "{'table': 'failed'}") {
 				// alert telling user the table of devices failed to load properly
+				var tableAlert = "<div class = 'alert alert-danger' role = 'alert'> <button type = 'button' class = 'close' data-dismiss = 'alert' aria-label = 'Close'> <span aria-hidden = 'true'>&times;</span> </button> The table of devices failed to load from the server </div>";
+				document.getElementById("invalid_alert").innerHTML = tableAlert;
+				return true;
 			}
-			if (xhttp.responseText == "changeName: failed") {
+			if (xhttp.responseText == "{'changeName': 'failed'}") {
 				// alert telling user changing the name of a device failed
+				var changeNameAlert = "<div class = 'alert alert-danger' role = 'alert'> <button type = 'button' class = 'close' data-dismiss = 'alert' aria-label = 'Close'> <span aria-hidden = 'true'>&times;</span> </button> The server failed to change the name of that device </div>";
+				document.getElementById("invalid_alert").innerHTML = changeNameAlert;
+				return true;
 			}
-			if (xhttp.responseText == "addDevice: failed") {
+			if (xhttp.responseText == "{'addDevice': 'failed'}") {
 				// alert telling user adding a new device failed
+				var addDeviceAlert = "<div class = 'alert alert-danger' role = 'alert'> <button type = 'button' class = 'close' data-dismiss = 'alert' aria-label = 'Close'> <span aria-hidden = 'true'>&times;</span> </button> The server failed to add that new device to your list </div>";
+				document.getElementById("invalid_alert").innerHTML = addDeviceAlert;
+				return true;
 			}
-			if (xhttp.responseText == "setLevel: failed") {
+			if (xhttp.responseText == "{'light_level': 'failed'}") {
 				// alert telling user turning light on/off failed
+				var setLevelAlert = "<div class = 'alert alert-danger' role = 'alert'> <button type = 'button' class = 'close' data-dismiss = 'alert' aria-label = 'Close'> <span aria-hidden = 'true'>&times;</span> </button> The server failed to change the state of the Lux device </div>";
+				document.getElementById("invalid_alert").innerHTML = setLevelAlert;
+				return true;
 			}
 		}
 		
 		function onPageLoad(xhttp) {
-			// create index to keep track of rows/devices
 			myDevices = JSON.parse(xhttp.responseText);
-			mylist += "<table id = 'myLuxDevices' border = '1'> <th> Device Name </th> <th></th> <th> Light status </th> <th></th>";
+			mylist += "<table id = 'myLuxDevices' border = '1'>";
 			for (x in myDevices) {
-				// check on/off state
-				// var deviceNumber = row #
-				mylist += "<tr><td>" + myDevices[x].name + "</td><td> <button class = 'btn' onclick = 'changeDeviceName(deviceNumber)'> Change Name </button> </td><td> <img src = 'images/lighton.jpg'> </td><td> <button class = 'btn' onclick = 'onState(deviceNumber)'> Turn on </button> <button class = 'btn' onclick = 'offState(deviceNumber)'> Turn off </button></td><td><button class = 'btn' onclick = 'removeDevice(deviceNumber)'> Remove Device </button></td></tr>";
-				// increment row # to keep track of devices
+				var deviceID = myDevices[x].serial_num;
+				var deviceName = myDevices[x].Device;
+				var deviceState = myDevices[x].light_level;
+				var devicePictureState = checkOn/OffState(deviceState);
+				mylist += "<div id=" + deviceID + " border-style = 'solid' border-radius = '5px' width = '200px' height = '300px'>" + devicePictureState + "<p text-align = 'center'>" + deviceName + "</p> <br> <p><button class = 'btn' onclick = 'onState(" + deviceID + ")'> On </button> <button class = 'btn' onclick = 'offState(" + deviceID + ")'> Off </button></div>"
 			}
 			mylist += "</table>";
 			document.getElementById("user_devices").innerHTML = mylist;
 		}
 		
-		// Find a way to keep track of devices and which device is being changed
+		function checkOn/OffState(deviceState) {
+			if (deviceState == 10) {
+				var image = "<img src = 'images/lighton.jpg' width = '122px' height = '180px' display = 'block' margin = 'auto'>";
+				return image;
+			}
+			else if (deviceState == 0) {
+				var image = "<img src = 'images/lightoff.jpg' width = '122px' height = '180px' display = 'block' margin = 'auto'>";
+				return image;
+			}
+		}
+		
+		function onState(deviceName, deviceID) {
+			sendRequest(onPageLoad, "{'cmd':'update_req'},{'data':{'Device':" + deviceName + "'serial_num':" + deviceID + ",'light_level: 10'}}");
+		}
+		
+		function offState(deviceID) {
+			sendRequest(onPageLoad, "{'cmd':'update_req'},{'data':{'Device':" + deviceName + "'serial_num':" + deviceID + ",'light_level: 0'}}");
+		}
+		
+		/*
 		function changeDeviceName(deviceNumber) {
 			var originalName = document.getElementById("myLuxDevices").rows[deviceNumber].cells.item(0).innerHTML;
 			var userPrompt = prompt("Enter new device name:", originalName);
@@ -122,13 +153,13 @@
 			if (userPrompt != null) {
 				sendRequest('/path', verifyChangeName, "oldname:" + originalName + " newname:" + userPrompt);
 			}
-			// find out how to reload page for updated list?
 		}
 		
 		function verifyChangeName(xhttp) {
 			console.log(xhttp.responseText);
+			// call the sendRequest for onPageLoad again?
 		}
-		/*
+		
 		function changeGroup(xhttp) {
 			// Take the data in the drop-down menu? and send it to the server
 			// Check to see if it was successful
@@ -139,38 +170,17 @@
 			// Enter device serial number
 			// find out how to reload the page for updated list?
 		}
-		*/
+		
 		function removeDevice(deviceNumber) {
 			var deviceName = document.getElementById("myLuxDevices").rows[deviceNumber].cells.item(0).innerHTML;
 			sendRequest('/path', verifyRemoveDevice, "remove:" + deviceName);
-			// find out how to reload the page for updated list?
 		}
 		
 		function verifyRemoveDevice(xhttp) {
 			console.log(xhttp.responseText);
+			// call the sendRequest for onPageLoad again?
 		}
-		
-		function onState(deviceNumber) {
-			var deviceName = document.getElementById("myLuxDevices").rows[deviceNumber].cells.item(0).innerHTML;
-			sendRequest('/path', verifyOnState, "setlevel:10 device:" + deviceName);
-			document.getElementById("myLuxDevices").rows[deviceNumber].cells.item(2).innerHTML = "<img src = 'images/lighton.jpg'>";
-		}
-		
-		function verifyOnState(xhttp) {
-			console.log(xhttp.responseText);
-		}
-		
-		function offState(deviceNumber) {
-			var deviceName = document.getElementById("myLuxDevices").rows[deviceNumber].cells.item(0).innerHTML;
-			sendRequest('/path', verifyOffState, "setlevel:0 device:" + deviceName);
-			document.getElementById("myLuxDevices").rows[deviceNumber].cells.item(2).innerHTML = "<img src = 'images/lighton.jpg'>";
-		}
-		
-		function verifyOffState(xhttp) {
-			console.log(xhttp.responseText);
-		}
-		
-		
+		*/
 		</script>
 		
 	  </div>
