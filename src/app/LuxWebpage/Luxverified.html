@@ -120,7 +120,7 @@
 				var deviceName = myDevices[x].Device;
 				var deviceState = myDevices[x].light_level;
 				var devicePictureState = checkOn/OffState(deviceState);
-				mylist += "<div id=" + deviceID + " border-style = 'solid' border-radius = '5px' width = '200px' height = '300px'>" + devicePictureState + "<p text-align = 'center'>" + deviceName + "</p> <br> <p><button class = 'btn' onclick = 'onState(" + deviceID + ")'> On </button> <button class = 'btn' onclick = 'offState(" + deviceID + ")'> Off </button></div>"
+				mylist += "<div id=" + deviceID + " border-style = 'solid' border-radius = '5px' width = '200px' height = '300px'>" + devicePictureState + "<p text-align = 'center'>" + deviceName + "</p> <br> <p><button class = 'btn' onclick = 'onState(" + deviceName + "," + deviceID + )'> On </button> <button class = 'btn' onclick = 'offState(" + deviceID + ")'> Off </button></div>"
 			}
 			mylist += "</table>";
 			document.getElementById("user_devices").innerHTML = mylist;
@@ -141,7 +141,7 @@
 			sendRequest(onPageLoad, "{'cmd':'update_req'},{'data':{'Device':" + deviceName + "'serial_num':" + deviceID + ",'light_level: 10'}}");
 		}
 		
-		function offState(deviceID) {
+		function offState(deviceName, deviceID) {
 			sendRequest(onPageLoad, "{'cmd':'update_req'},{'data':{'Device':" + deviceName + "'serial_num':" + deviceID + ",'light_level: 0'}}");
 		}
 		
