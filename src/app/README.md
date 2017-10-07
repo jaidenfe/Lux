@@ -1,5 +1,6 @@
 # Lux Application
 
+* TODO Changes to this readme file after finalizations for MVP submission
 * To run this web application, enter the following URL into your browser: http://www.acsu.buffalo.edu/~henryohm/ 
 * You will be greeted with the frontpage of our website, detailing our current development progress through Youtube videos and Github releases.
 * As seen on the navigation bar at the top of your screen, you may travel to 'ABOUT', to learn what the Lux device aims to accomplish. 
