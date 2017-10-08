@@ -57,25 +57,22 @@
           </label>
         </div>
 		-->
-        <button class="btn btn-lg btn-primary btn-block" type="submit" onclick = sendRequest();>Sign in</button>
+        <button class="btn btn-lg btn-primary btn-block" type="submit" formmethod = "post" onclick = sendRequest;>Sign in</button>
       </form>
 	  
 	  <script>
 	  function sendRequest() {
-		var emailData = document.getElementById("inputEmail").value;
-		var passwordData = document.getElementById("inputPassword").value;
-		var param = JSON.stringify({"id": emailData, "pass": passwordData});
 		var xhttp = new XMLHttpRequest();
+		xhttp.open("POST", "../app.py", true);
+		xhttp.setRequestHeader("Content-type", "application/json");
 		xhttp.onreadystatechange = function() {
 			if (this.readyState == 4 && this.status == 200) {
 				onSignIn(this);
 			}
-			if (this.status == 501) {
-				checkFailure(this);
-			}
 		}
-		xhttp.open("POST", "../app.py", true);
-		xhttp.setRequestHeader("Content-type", "application/json");
+		var emailData = document.getElementById("inputEmail").value;
+		var passwordData = document.getElementById("inputPassword").value;
+		var param = JSON.stringify({"id": emailData, "pass": passwordData});
 		xhttp.send(param);
 	  }
 	  
@@ -85,11 +82,8 @@
 			// send the user to the verified page
 			window.location("Luxverified.html");
 		}
-	  }
-	  
-	  function checkFailure(xhttp) {
 		if (xhttp.responseText == "{'login': 'failed'}") {
-			// If the email does not exist in our database
+			// If the login info does not exist in our database
 			var invalidAlert = "<div class = 'alert alert-danger' role = 'alert'> <button type = 'button' class = 'close' data-dismiss = 'alert' aria-label = 'Close'> <span aria-hidden = 'true'>&times;</span> </button> Invalid. Check login information </div>";
 			document.getElementById("invalid_alert").innerHTML = invalidAlert;
 		}
