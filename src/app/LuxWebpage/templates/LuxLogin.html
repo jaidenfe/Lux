@@ -13,7 +13,7 @@
     <link href="{{url_for('static', filename = 'bootstrap-4.0.0-beta/dist/css/bootstrap.min.css') }}" rel="stylesheet">
 
     <!-- Custom styles for this template -->
-    <link href="{{url_for('static', filename = 'signin.css') }}" rel="stylesheet">
+    <!-- <link href="{{url_for('static', filename = 'signin.css') }}" rel="stylesheet"> -->
 	
 	<!--
 	Find out how to check for cookies
@@ -57,12 +57,14 @@
           </label>
         </div>
 		-->
-        <button class="btn btn-lg btn-primary btn-block" type="submit" onclick = sendRequest("{'id': " + document.getElementById('inputEmail').value + ", 'pass:' " + document.getElementById('inputPassword').value);>Sign in</button>
+        <button class="btn btn-lg btn-primary btn-block" type="submit" onclick = sendRequest();>Sign in</button>
       </form>
 	  
 	  <script>
-	  function sendRequest(data) {
-		var param = JSON.stringify(data);
+	  function sendRequest() {
+		var emailData = document.getElementById("inputEmail").value;
+		var passwordData = document.getElementById("inputPassword").value;
+		var param = JSON.stringify({"id": emailData, "pass": passwordData});
 		var xhttp = new XMLHttpRequest();
 		xhttp.onreadystatechange = function() {
 			if (this.readyState == 4 && this.status == 200) {
@@ -73,13 +75,13 @@
 			}
 		}
 		xhttp.open("POST", "../app.py", true);
-		xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+		xhttp.setRequestHeader("Content-type", "application/json");
 		xhttp.send(param);
 	  }
 	  
 	  function onSignIn(xhttp) {
 		// Check to see if any errors occurred when trying to sign-in
-		if (xhttp.responseText == "{'login': 'success'") {
+		if (xhttp.responseText == "{'login': 'success'}") {
 			// send the user to the verified page
 			window.location("Luxverified.html");
 		}

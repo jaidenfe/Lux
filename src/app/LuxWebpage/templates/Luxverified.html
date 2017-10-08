@@ -13,10 +13,10 @@
     <link href="{{url_for('static', filename = 'bootstrap-4.0.0-beta/dist/css/bootstrap.min.css') }}" rel="stylesheet">
 
     <!-- Custom styles for this template -->
-    <link href="{{url_for('static', filename = 'jumbotron.css') }}" rel="stylesheet">
+    <!-- <link href="{{url_for('static', filename = 'jumbotron.css') }}" rel="stylesheet"> -->
   </head>
 
-  <body onload = "sendRequest(onPageLoad, '{'cmd':'status_req'}')">
+  <body onload = "sendRequest(onPageLoad, request_for_page)">
 
     <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
       <a class="navbar-brand" href="index.html">LUX</a>
@@ -69,7 +69,9 @@
 		<!-- <button class = "btn" onclick = "addDevice"> Add new device </button> -->
 		
 		<script>
-		function sendRequest(url, selFunction, data) {
+		var request_for_page = {"cmd":"status_req"};
+		
+		function sendRequest(selFunction, data) {
 			var param = JSON.stringify(data);
 			var xhttp = new XMLHttpRequest();
 			xhttp.onreadystatechange = function() {
@@ -81,7 +83,7 @@
 				}
 			}
 			xhttp.open("POST", "../app.py", true);
-			xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+			xhttp.setRequestHeader("Content-type", "application/json");
 			xhttp.send(param);
 		}
 		
@@ -138,11 +140,13 @@
 		}
 		
 		function onState(deviceName, deviceID) {
-			sendRequest(onPageLoad, "{'cmd':'update_req'},{'data':{'Device':" + deviceName + "'serial_num':" + deviceID + ",'light_level: 10'}}");
+			var data = {{"cmd":"update_req"},{"data":{"Device": deviceName, "serial_num": deviceID, "light_level": 10}};
+			sendRequest(onPageLoad, data);
 		}
 		
 		function offState(deviceName, deviceID) {
-			sendRequest(onPageLoad, "{'cmd':'update_req'},{'data':{'Device':" + deviceName + "'serial_num':" + deviceID + ",'light_level: 0'}}");
+			var data = {{"cmd":"update_req"},{"data":{"Device": deviceName, "serial_num": deviceID, "light_level": 0}};
+			sendRequest(onPageLoad, data);
 		}
 		
 		/*
