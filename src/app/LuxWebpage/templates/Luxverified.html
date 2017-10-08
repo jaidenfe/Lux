@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+	<title> Lux: Wireless Home Illumination </title>
+	<link rel = "shortcut icon" href = "{{url_for('static', filename = 'images/Lightbulb.ico') }}">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
+    
+	<!-- Bootstrap core CSS -->
+    <link href="{{url_for('static', filename = 'bootstrap-4.0.0-beta/dist/css/bootstrap.min.css') }}" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="{{url_for('static', filename = 'jumbotron.css') }}" rel="stylesheet">
+  </head>
+
+  <body onload = "sendRequest(onPageLoad, '{'cmd':'status_req'}')">
+
+    <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
+      <a class="navbar-brand" href="index.html">LUX</a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="navbarsExampleDefault">
+        <ul class="navbar-nav mr-auto">
+          <li class="nav-item active">
+            <a class="nav-link" href="index.html">Home <span class="sr-only">(current)</span></a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="Luxabout.html">About</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="LuxLogin.html">Sign-up/Login</a>
+          </li>
+		  <!--
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="http://example.com" id="dropdown01" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Dropdown</a>
+            <div class="dropdown-menu" aria-labelledby="dropdown01">
+              <a class="dropdown-item" href="#">Action</a>
+              <a class="dropdown-item" href="#">Another action</a>
+              <a class="dropdown-item" href="#">Something else here</a>
+            </div>
+          </li>
+		  -->
+		  <li class = "nav-item" style = "float:right">
+			<a class = "nav-link" href = "Luxcontact.html"> Contact </a> 
+		  </li>
+        </ul>
+      </div>
+    </nav>
+
+    <div class="container">
+
+		<div id = "invalid_alert">
+		
+		</div>
+	
+      <div class="starter-template">
+		<br> <br> <br>
+        <h1>Your registered devices</h1>
+		
+		<div id = 'user_devices'>
+		
+		</div>
+		
+		<!-- <button class = "btn" onclick = "addDevice"> Add new device </button> -->
+		
+		<script>
+		function sendRequest(url, selFunction, data) {
+			var param = JSON.stringify(data);
+			var xhttp = new XMLHttpRequest();
+			xhttp.onreadystatechange = function() {
+				if (this.readyState == 4 && this.status == 200) {
+					if (checkFailure) {
+						break;
+					}
+					selFunction(this);
+				}
+			}
+			xhttp.open("POST", "../app.py", true);
+			xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+			xhttp.send(param);
+		}
+		
+		function checkFailure(xhttp) {
+			if (xhttp.responseText == "{'table': 'failed'}") {
+				// alert telling user the table of devices failed to load properly
+				var tableAlert = "<div class = 'alert alert-danger' role = 'alert'> <button type = 'button' class = 'close' data-dismiss = 'alert' aria-label = 'Close'> <span aria-hidden = 'true'>&times;</span> </button> The table of devices failed to load from the server </div>";
+				document.getElementById("invalid_alert").innerHTML = tableAlert;
+				return true;
+			}
+			if (xhttp.responseText == "{'changeName': 'failed'}") {
+				// alert telling user changing the name of a device failed
+				var changeNameAlert = "<div class = 'alert alert-danger' role = 'alert'> <button type = 'button' class = 'close' data-dismiss = 'alert' aria-label = 'Close'> <span aria-hidden = 'true'>&times;</span> </button> The server failed to change the name of that device </div>";
+				document.getElementById("invalid_alert").innerHTML = changeNameAlert;
+				return true;
+			}
+			if (xhttp.responseText == "{'addDevice': 'failed'}") {
+				// alert telling user adding a new device failed
+				var addDeviceAlert = "<div class = 'alert alert-danger' role = 'alert'> <button type = 'button' class = 'close' data-dismiss = 'alert' aria-label = 'Close'> <span aria-hidden = 'true'>&times;</span> </button> The server failed to add that new device to your list </div>";
+				document.getElementById("invalid_alert").innerHTML = addDeviceAlert;
+				return true;
+			}
+			if (xhttp.responseText == "{'light_level': 'failed'}") {
+				// alert telling user turning light on/off failed
+				var setLevelAlert = "<div class = 'alert alert-danger' role = 'alert'> <button type = 'button' class = 'close' data-dismiss = 'alert' aria-label = 'Close'> <span aria-hidden = 'true'>&times;</span> </button> The server failed to change the state of the Lux device </div>";
+				document.getElementById("invalid_alert").innerHTML = setLevelAlert;
+				return true;
+			}
+		}
+		
+		function onPageLoad(xhttp) {
+			myDevices = JSON.parse(xhttp.responseText);
+			mylist += "<table id = 'myLuxDevices'>";
+			for (x in myDevices) {
+				var deviceID = myDevices[x].serial_num;
+				var deviceName = myDevices[x].Device;
+				var deviceState = myDevices[x].light_level;
+				var devicePictureState = checkOn/OffState(deviceState);
+				mylist += "<div id=" + deviceID + " border-style = 'solid' border-radius = '5px' width = '200px' height = '300px'>" + devicePictureState + "<p text-align = 'center'>" + deviceName + "</p> <br> <p><button class = 'btn' onclick = 'onState(" + deviceName + "," + deviceID + )'> On </button> <button class = 'btn' onclick = 'offState(" + deviceID + ")'> Off </button></div>"
+			}
+			mylist += "</table>";
+			document.getElementById("user_devices").innerHTML = mylist;
+		}
+		
+		function checkOn/OffState(deviceState) {
+			if (deviceState == 10) {
+				var image = "<img src = '{{url_for('static', filename = 'images/lighton.jpg') }}' width = '122px' height = '180px' display = 'block' margin = 'auto'>";
+				return image;
+			}
+			else if (deviceState == 0) {
+				var image = "<img src = '{{url_for('static', filename = 'images/lightoff.jpg') }}' width = '122px' height = '180px' display = 'block' margin = 'auto'>";
+				return image;
+			}
+		}
+		
+		function onState(deviceName, deviceID) {
+			sendRequest(onPageLoad, "{'cmd':'update_req'},{'data':{'Device':" + deviceName + "'serial_num':" + deviceID + ",'light_level: 10'}}");
+		}
+		
+		function offState(deviceName, deviceID) {
+			sendRequest(onPageLoad, "{'cmd':'update_req'},{'data':{'Device':" + deviceName + "'serial_num':" + deviceID + ",'light_level: 0'}}");
+		}
+		
+		/*
+		function changeDeviceName(deviceNumber) {
+			var originalName = document.getElementById("myLuxDevices").rows[deviceNumber].cells.item(0).innerHTML;
+			var userPrompt = prompt("Enter new device name:", originalName);
+			
+			if (userPrompt != null) {
+				sendRequest('/path', verifyChangeName, "oldname:" + originalName + " newname:" + userPrompt);
+			}
+		}
+		
+		function verifyChangeName(xhttp) {
+			console.log(xhttp.responseText);
+			// call the sendRequest for onPageLoad again?
+		}
+		
+		function changeGroup(xhttp) {
+			// Take the data in the drop-down menu? and send it to the server
+			// Check to see if it was successful
+		}
+		
+		function addDevice(xhttp) {
+			// Create a alert/pop-up/prompt for user to enter new device information
+			// Enter device serial number
+			// find out how to reload the page for updated list?
+		}
+		
+		function removeDevice(deviceNumber) {
+			var deviceName = document.getElementById("myLuxDevices").rows[deviceNumber].cells.item(0).innerHTML;
+			sendRequest('/path', verifyRemoveDevice, "remove:" + deviceName);
+		}
+		
+		function verifyRemoveDevice(xhttp) {
+			console.log(xhttp.responseText);
+			// call the sendRequest for onPageLoad again?
+		}
+		*/
+		</script>
+		
+	  </div>
+	  <hr>
+
+      <footer>
+        <p>CSE 442 - Fall 2017&copy; </p>
+      </footer>	
+    </div><!-- /.container -->
+
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script>window.jQuery || document.write('<script src="../../../../assets/js/vendor/jquery.min.js"><\/script>')</script>
+    <script src="{{url_for('static', filename = 'bootstrap-4.0.0-beta/assets/js/vendor/popper.min.js') }}"></script>
+    <script src="{{url_for('static', filename = 'bootstrap-4.0.0-beta/dist/js/bootstrap.min.js') }}"></script>
+    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+    <script src="{{url_for('static', filename = 'bootstrap-4.0.0-beta/assets/js/ie10-viewport-bug-workaround.js') }}"></script>
+  </body>
+</html>
