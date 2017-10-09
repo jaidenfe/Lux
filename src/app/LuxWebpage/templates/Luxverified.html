@@ -119,11 +119,10 @@
 			myDevices = JSON.parse(xhttp.responseText);
 			mylist += "<table id = 'myLuxDevices'>";
 			for (x in myDevices) {
-				var deviceID = myDevices[x].serial_num;
-				var deviceName = myDevices[x].Device;
-				var deviceState = myDevices[x].light_level;
+				var deviceID = myDevices[x].serial;
+				var deviceState = myDevices[x].level;
 				var devicePictureState = checkOn/OffState(deviceState);
-				mylist += "<div id=" + deviceID + " border-style = 'solid' border-radius = '5px' width = '200px' height = '300px'>" + devicePictureState + "<p text-align = 'center'>" + deviceName + "</p> <br> <p><button class = 'btn' onclick = 'onState(" + deviceName + "," + deviceID + )'> On </button> <button class = 'btn' onclick = 'offState(" + deviceID + ")'> Off </button></div>"
+				mylist += "<div id=" + deviceID + " border-style = 'solid' border-radius = '5px' width = '200px' height = '300px'>" + devicePictureState + "<p text-align = 'center'>" + deviceID + "</p> <br> <p><button class = 'btn' onclick = 'onState(" + deviceID + ")'> On </button> <button class = 'btn' onclick = 'offState(" + deviceID + ")'> Off </button></div>"
 			}
 			mylist += "</table>";
 			document.getElementById("user_devices").innerHTML = mylist;
@@ -140,13 +139,13 @@
 			}
 		}
 		
-		function onState(deviceName, deviceID) {
-			var data = {"cmd":"update_req","data":{"Device": deviceName, "serial_num": deviceID, "light_level": 10}};
+		function onState(deviceID) {
+			var data = {"cmd":"update_req","data":{"serial": deviceID, "level": 10}};
 			sendRequest(onPageLoad, data);
 		}
 		
-		function offState(deviceName, deviceID) {
-			var data = {"cmd":"update_req","data":{"Device": deviceName, "serial_num": deviceID, "light_level": 0}};
+		function offState(deviceID) {
+			var data = {"cmd":"update_req","data":{"serial": deviceID, "level": 0}};
 			sendRequest(onPageLoad, data);
 		}
 		
