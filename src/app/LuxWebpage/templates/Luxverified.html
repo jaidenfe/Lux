@@ -16,7 +16,7 @@
     <!-- <link href="{{url_for('static', filename = 'jumbotron.css') }}" rel="stylesheet"> -->
   </head>
 
-  <body>
+  <body onload="sendRequest()">
 
     <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
       <a class="navbar-brand" href="index.html">LUX</a>
@@ -58,7 +58,7 @@
 		
 		</div>
 	
-      <div class="starter-template" onload="sendRequest()">
+      <div class="starter-template">
 		<br> <br> <br>
         <h1>Your registered devices</h1>
 		
@@ -72,7 +72,6 @@
 		var request_for_page = {"cmd":"status_req"};
 		
 		function sendRequest() {
-			alert("here");
 			var xhttp = new XMLHttpRequest();
 			xhttp.open("POST", "/request", true);
 			xhttp.setRequestHeader("Content-type", "application/json");
