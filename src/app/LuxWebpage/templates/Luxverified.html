@@ -73,7 +73,7 @@
 		
 		function sendRequest(selFunction, data) {
 			var xhttp = new XMLHttpRequest();
-			xhttp.open("POST", "app.py", true);
+			xhttp.open("POST", "../app.py", true);
 			xhttp.setRequestHeader("Content-type", "application/json");
 			xhttp.onreadystatechange = function() {
 				if (this.readyState == 4 && this.status == 200) {
