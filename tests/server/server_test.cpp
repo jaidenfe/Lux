@@ -28,6 +28,10 @@ int main(int argc, char* argv[]) {
 		string s;
 		cin >> s;
 		
+		if (s.compare("") == 0) {
+			continue;
+		}
+		
 		server_send(4, s);//first connection is always fd=4
 		
 		updateFile("../devman/devices.dat");

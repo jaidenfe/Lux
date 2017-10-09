@@ -214,8 +214,25 @@ void* read_client(void* c_fd_p) {
 		string s_msg(msg);
 		
 		if (s_msg.length() == 0) {//client is disconnected, the buffer is just being read constantly
-			client_exit(c_fd, "");
+			continue;
+			//client_exit(c_fd, "");
 		}
+		
+		//cout << s_msg << endl;
+		
+		
+		if (s_msg.front() != '{' || s_msg.back() != '}') {
+			int level = atoi(s_msg.c_str());
+			string type = "OFF";
+	
+			if (level == 10) {
+				type = "ON";
+			}
+			server_send(4, to_string(UPDATE) + "|" + type);
+			//cout << "[DEVICE " << c_fd << "]: " << s_msg << endl;
+			continue;//just a message
+		}
+		
 		
 		//TODO check to make sure the message is JSON
 		
@@ -233,9 +250,12 @@ void* read_client(void* c_fd_p) {
 		
 		it->second(c_fd, s_msg);//must be the last thing to happen as sometimes the thread is killed
 		
+		pthread_mutex_lock(&mtx);
 		if (by_ip.count(client_ip_by_fd(c_fd)) == 0) {
+			pthread_mutex_unlock(&mtx);
 			break;
 		}
+		pthread_mutex_unlock(&mtx);
 	}
 	return NULL;
 }
@@ -467,6 +487,7 @@ void client_unregister(int c_fd, string msg) {
 void client_upd_req(int c_fd, string msg) {
 	Json* rcv_json = new Json(msg);
 	
+	/*
 	string d_name = rcv_json->data["name"];
 	
 	if (!isValidName(d_name)) {
@@ -474,18 +495,22 @@ void client_upd_req(int c_fd, string msg) {
 		delete(rcv_json);
 		return;
 	}
+	*/
 	
 	string serial = rcv_json->serial;
 	
+	/*
 	if (reg_devs.count(serial) == 0) {
 		cerr << "Unregistered client " << c_fd << " attempted to update a device." << endl;
 		delete(rcv_json);
 		return;
 	}
+	*/
 	
 	//TODO if the message tells me to disconnect a client, send a disconnect request/force disconnect after timeout
 	
-	Device* d = new Device(client_ip_by_fd(c_fd), d_name, rcv_json->serial);
+	Device* d = new Device(client_ip_by_fd(c_fd), "TODO", "abc123");
+	//Device* d = new Device(client_ip_by_fd(c_fd), d_name, serial);
 	
 	Json* snd_json = new Json(UPDATE, "0", d->getSerial());//TODO uuid
 	
