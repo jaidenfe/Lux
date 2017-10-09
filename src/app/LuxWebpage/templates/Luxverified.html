@@ -16,7 +16,7 @@
     <!-- <link href="{{url_for('static', filename = 'jumbotron.css') }}" rel="stylesheet"> -->
   </head>
 
-  <body onload="sendRequest()">
+  <body onload = "first_time_load()">
 
     <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
       <a class="navbar-brand" href="index.html">LUX</a>
@@ -71,7 +71,11 @@
 		<script>
 		var request_for_page = {"cmd":"status_req"};
 		
-		function sendRequest() {
+		function first_time_load() {
+			sendRequest(request_for_page);
+		}
+		
+		function sendRequest(data) {
 			var xhttp = new XMLHttpRequest();
 			xhttp.open("POST", "/request", true);
 			xhttp.setRequestHeader("Content-type", "application/json");
@@ -83,7 +87,7 @@
 					onPageLoad(this);
 				}
 			}
-			var param = JSON.stringify(request_for_page);
+			var param = JSON.stringify(data);
 			xhttp.send(param);
 		}
 		
@@ -140,12 +144,12 @@
 		
 		function onState(deviceID) {
 			var data = {"cmd":"update_req","data":{"serial": deviceID, "level": 10}};
-			sendRequest(onPageLoad, data);
+			sendRequest(data);
 		}
 		
 		function offState(deviceID) {
 			var data = {"cmd":"update_req","data":{"serial": deviceID, "level": 0}};
-			sendRequest(onPageLoad, data);
+			sendRequest(data);
 		}
 		
 		/*
