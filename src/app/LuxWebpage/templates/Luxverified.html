@@ -73,7 +73,7 @@
 		
 		function sendRequest(selFunction, data) {
 			var xhttp = new XMLHttpRequest();
-			xhttp.open("POST", "../app.py", true);
+			xhttp.open("POST", "/request", true);
 			xhttp.setRequestHeader("Content-type", "application/json");
 			xhttp.onreadystatechange = function() {
 				if (this.readyState == 4 && this.status == 200) {
@@ -140,12 +140,12 @@
 		}
 		
 		function onState(deviceName, deviceID) {
-			var data = {{"cmd":"update_req"},{"data":{"Device": deviceName, "serial_num": deviceID, "light_level": 10}}};
+			var data = {"cmd":"update_req","data":{"Device": deviceName, "serial_num": deviceID, "light_level": 10}};
 			sendRequest(onPageLoad, data);
 		}
 		
 		function offState(deviceName, deviceID) {
-			var data = {{"cmd":"update_req"},{"data":{"Device": deviceName, "serial_num": deviceID, "light_level": 0}}};
+			var data = {"cmd":"update_req","data":{"Device": deviceName, "serial_num": deviceID, "light_level": 0}};
 			sendRequest(onPageLoad, data);
 		}
 		

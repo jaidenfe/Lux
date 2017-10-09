@@ -44,7 +44,7 @@
 		
 		</div>
 		
-      <form class="form-signin">
+      <form class="form-signin" method="post">
         <h2 class="form-signin-heading">Please sign in</h2>
         <label for="inputEmail" class="sr-only">Email address</label>
         <input type="email" id="inputEmail" class="form-control" placeholder="Email address" required autofocus>
@@ -57,13 +57,13 @@
           </label>
         </div>
 		-->
-        <button class="btn btn-lg btn-primary btn-block" type="submit" onclick = sendRequest;>Sign in</button>
+        <button class="btn btn-lg btn-primary btn-block" type="submit" onclick = sendRequest();>Sign in</button>
       </form>
 	  
 	  <script>
 	  function sendRequest() {
 		var xhttp = new XMLHttpRequest();
-		xhttp.open("POST", "../app.py", true);
+		xhttp.open("POST", "/login", true);
 		xhttp.setRequestHeader("Content-type", "application/json");
 		xhttp.onreadystatechange = function() {
 			if (this.readyState == 4 && this.status == 200) {
