@@ -129,6 +129,7 @@ def contact_page():
 @app.route('/login',methods=['POST'])
 def login():
     verification = request.get_json()
+    print(verification)
     identity = verification['id']
     password = verification['pass']
     if(identity == Data.login_info["id"] and password == Data.login_info["pass"]):
