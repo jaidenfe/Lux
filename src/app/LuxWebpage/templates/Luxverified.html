@@ -16,7 +16,7 @@
     <!-- <link href="{{url_for('static', filename = 'jumbotron.css') }}" rel="stylesheet"> -->
   </head>
 
-  <body onload = "sendRequest(onPageLoad, request_for_page)">
+  <body onload = "first_time_load()">
 
     <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
       <a class="navbar-brand" href="index.html">LUX</a>
@@ -71,7 +71,11 @@
 		<script>
 		var request_for_page = {"cmd":"status_req"};
 		
-		function sendRequest(selFunction, data) {
+		function first_time_load() {
+			sendRequest(request_for_page);
+		}
+		
+		function sendRequest(data) {
 			var xhttp = new XMLHttpRequest();
 			xhttp.open("POST", "/request", true);
 			xhttp.setRequestHeader("Content-type", "application/json");
@@ -80,7 +84,7 @@
 					if (checkFailure) {
 						break;
 					}
-					selFunction(this);
+					onPageLoad(this);
 				}
 			}
 			var param = JSON.stringify(data);
@@ -118,11 +122,10 @@
 			myDevices = JSON.parse(xhttp.responseText);
 			mylist += "<table id = 'myLuxDevices'>";
 			for (x in myDevices) {
-				var deviceID = myDevices[x].serial_num;
-				var deviceName = myDevices[x].Device;
-				var deviceState = myDevices[x].light_level;
+				var deviceID = myDevices[x].serial;
+				var deviceState = myDevices[x].level;
 				var devicePictureState = checkOn/OffState(deviceState);
-				mylist += "<div id=" + deviceID + " border-style = 'solid' border-radius = '5px' width = '200px' height = '300px'>" + devicePictureState + "<p text-align = 'center'>" + deviceName + "</p> <br> <p><button class = 'btn' onclick = 'onState(" + deviceName + "," + deviceID + )'> On </button> <button class = 'btn' onclick = 'offState(" + deviceID + ")'> Off </button></div>"
+				mylist += "<div id=" + deviceID + " border-style = 'solid' border-radius = '5px' width = '200px' height = '300px'>" + devicePictureState + "<p text-align = 'center'>" + deviceID + "</p> <br> <p><button class = 'btn' onclick = 'onState(" + deviceID + ")'> On </button> <button class = 'btn' onclick = 'offState(" + deviceID + ")'> Off </button></div>"
 			}
 			mylist += "</table>";
 			document.getElementById("user_devices").innerHTML = mylist;
@@ -139,14 +142,14 @@
 			}
 		}
 		
-		function onState(deviceName, deviceID) {
-			var data = {"cmd":"update_req","data":{"Device": deviceName, "serial_num": deviceID, "light_level": 10}};
-			sendRequest(onPageLoad, data);
+		function onState(deviceID) {
+			var data = {"cmd":"update_req","data":{"serial": deviceID, "level": 10}};
+			sendRequest(data);
 		}
 		
-		function offState(deviceName, deviceID) {
-			var data = {"cmd":"update_req","data":{"Device": deviceName, "serial_num": deviceID, "light_level": 0}};
-			sendRequest(onPageLoad, data);
+		function offState(deviceID) {
+			var data = {"cmd":"update_req","data":{"serial": deviceID, "level": 0}};
+			sendRequest(data);
 		}
 		
 		/*

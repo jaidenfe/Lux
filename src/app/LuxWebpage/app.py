@@ -31,7 +31,7 @@ class JSON_S:
         c_string = '{"cmd": '+'"'+str(Data.command)+'",'+'"uuid": '+str(Data.uuid)+','+'"data":{'+d_string+'}}'
         return c_string
     def status_req(self):
-        c_string = '{"cmd": '+ '"'+ str(Data.command)+'"}'
+        c_string = '{"cmd":' + str(Data.command) + ',"uuid":"0","serial":"' + 'SERIAL' + '"data":{' + '}}'
         return c_string
     # def status_ack(self):
     #     c_string = '{"cmd": '+ '"status_ack"}'
@@ -68,9 +68,10 @@ class connection:
         print("sending {!r}".format(message))
         self.socket.sendall(message)
     def readServer(self):               #Reciveve JSON string and stores it in server_dict
-        json_s = self.socket.recv(1024)
-        Data.server_dict = json.loads(json_s.decode())
-        print("received {!r}".format(json_s))
+        json_s = self.socket.recv(1024).split(b'\0', 1)[0]
+        print(json_s)
+        Data.server_dict = json.loads(json_s.decode('utf-8'))
+        print("received {!r}".format(json_s))				#h
     def communication(self):            #The communication function control what is stores,recieve and sent commands base on web client and server
         if Data.webapp_dict['cmd'] == "status_req":         #If web client sent status_req
             Data.command = 2                                #Set command to status_req
@@ -78,9 +79,9 @@ class connection:
             self.readServer()                               #This read from server and stores it server_dict
             Data.command = Data.server_dict['cmd']          #Stores each key individually from server_dict *might be remove since I think we can just use server dict*
             Data.uuid = Data.server_dict['uuid']
-            Data.serial_num = Data.server_dict["serial_num"]
+            Data.serial_num = Data.server_dict["serial"]
             Data.data_field = Data.server_dict["data"]
-            Data.data_field["serial_num"] = Data.server_dict["serial_num"]
+            Data.data_field["serial"] = Data.server_dict["serial"]
             if Data.command == 3:
                 Data.user_info[2] = Data.data_field
             # Data.command = "status_ack"
@@ -93,9 +94,9 @@ class connection:
             Data.command = Data.server_dict['cmd']
             if Data.command == 5:
                 Data.uuid = Data.server_dict['uuid']
-                Data.serial_num = Data.server_dict["serial_num"]
+                Data.serial_num = Data.server_dict["serial"]
                 Data.data_field = Data.server_dict["data"]
-                Data.data_field["serial_num"] = Data.server_dict["serial_num"]
+                Data.data_field["serial"] = Data.server_dict["serial"]
             # Data.command = "update_ack"
             self.sendToServer()
 
@@ -118,9 +119,32 @@ def home_page():
 @app.route('/LuxLogin.html',methods=['GET','POST'])
 def login_page():
     return render_template('LuxLogin.html')
+
 @app.route('/Luxverified.html',methods=['GET','POST'])
 def verified_page():
-    return render_template('Luxverified.html')
+    my_json = {"cmd":"status_req"}
+    Data.webapp_dict = my_json
+    Data.server_dict={}
+    client_py = connection(Data.host,Data.port)
+    client_py.connect()
+    client_py.communication()
+    client_py.disconnect()
+    if Data.webapp_dict['cmd'] == "status_req":
+        if 2 in Data.user_info:
+            return jsonify(Data.user_info)
+        else:
+            return jsonify({"table":"failed"})
+    elif Data.webapp_dict['cmd'] == "update_req":
+        print("Data: " + str(Data.data_field))
+        print("Web: " + str(Data.webapp_dict))
+        for keys in Data.data_field:
+            if Data.data_field[keys] != Data.webapp_dict["data"][keys]:
+                return jsonify({"light_level":"failed"})
+        Data.user_info[2] = Data.data_field
+        return jsonify(Data.user_info)
+
+    #return render_template('Luxverified.html')
+
 @app.route('/Luxcontact.html',methods=['GET','POST'])
 def contact_page():
     return render_template('Luxcontact.html')
@@ -133,13 +157,15 @@ def login():
     identity = verification['id']
     password = verification['pass']
     if(identity == Data.login_info["id"] and password == Data.login_info["pass"]):
-        return jsonify({"login": "success"})
+        return "success"
     else:
-        return jsonify({"login": "failed"})
+        return "failure"
 
 @app.route('/request',methods=['POST'])
 def process():
-    Data.webapp_dict = request.get_json()
+    print("request")
+    my_json = request.get_json()
+    Data.webapp_dict = my_json
     Data.server_dict={}
     client_py = connection(Data.host,Data.port)
     client_py.connect()

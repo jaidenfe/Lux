@@ -4,32 +4,27 @@
 
 //BEGIN EXTERNAL DEFINITIONS
 map<string, DeviceGroup*> grps_n;
-map<long, Device*> devs_id;
 map<string, Device*> devs_ip;
-map<string, Device*> devs_n;
+map<string, Device*> devs_s;
 //END EXTERNAL DEFINITIONS
 
 char delim = '|';
 
 //BEGIN Device
-Device::Device(long id, string ip, string name) {
-	this->id = id;
+Device::Device(string ip, string name, string serial) {
 	this->ip = ip;
 	this->name = name;
+	this->serial = serial;
 	
 	f_vers = "UNKNOWN";
 	h_vers = "UNKNOWN";
 	
-	devs_id.insert(pair<long, Device*>(this->id, this));
 	devs_ip.insert(pair<string, Device*>(this->ip, this));
-	devs_n.insert(pair<string, Device*>(this->name, this));
+	devs_s.insert(pair<string, Device*>(this->serial, this));
 }
 
 Device::~Device(){}
 
-long Device::getID() const {
-	return id;
-}
 
 string Device::getIP() const {
 	return ip;
@@ -37,6 +32,22 @@ string Device::getIP() const {
 
 string Device::getName() const {
 	return name;
+}
+
+void Device::setName(string name) {
+	this->name = name;
+}
+
+string Device::getSerial() const {
+	return serial;
+}
+
+int Device::getLightLevel() const {
+	return level;
+}
+
+void Device::setLightLevel(int level) {
+	this->level = level;
 }
 
 string Device::firmware_version() const {
@@ -55,8 +66,12 @@ void Device::set_h_vers(string h_vers) {
 	this->h_vers = h_vers;
 }
 
+string Device::toString() {
+	return ip + delim + name + delim + serial + delim + to_string(level) + delim + f_vers + delim + h_vers;
+}
+
 bool Device::operator ==(const Device dev) const {
-	return dev.getID() == this->id && dev.getIP() == this->ip && dev.getName().compare(this->name) == 0;
+	return dev.getSerial().compare(this->serial) == 0;
 }
 //END Device
 
@@ -101,25 +116,18 @@ string DeviceGroup::getName() {
 }
 //END DeviceGroup
 
-Device byID(long id) {
-	if (devs_id.count(id) == 0) {//no device found
-		return Device(-1, "NULL", "NULL");//TODO throw custom exception?
-	}
-	return *devs_id[id];
-}
-
-Device byIP(string ip) {
+Device* byIP(string ip) {
 	if (devs_ip.count(ip) == 0) {//no device found
-		return Device(-1, "NULL", "NULL");
+		return new Device("NULL", "NULL", "NULL");
 	}
-	return *devs_ip[ip];
+	return devs_ip[ip];
 }
 
-Device byName(string name) {
-	if (devs_n.count(name) == 0) {//no device found
-		return Device(-1, "NULL", "NULL");
+Device* bySerial(string serial) {
+	if (devs_s.count(serial) == 0) {//no device found
+		return new Device("NULL", "NULL", "NULL");
 	}
-	return *devs_n[name];
+	return devs_s[serial];
 }
 
 //BEGIN UTILITY FUNCTIONS
@@ -140,12 +148,13 @@ bool legalChars(string name, string legal) {
 
 bool isValidName(string name) {
 	string legal = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890 ";
-	return isProperLength(name) && legalChars(name, legal) && name != "NULL" && byName(name).getID() != -1;//valid name
+	return isProperLength(name) && legalChars(name, legal) && name.compare("NULL") != 0;//valid name
 }
 
 bool isValidGroupName(string name) {
 	string legal = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890 ";
-	return isProperLength(name) && legalChars(name, legal) && name != "NULL" && byGroupName(name).getName() != "NULL";//valid name
+	return isProperLength(name) && legalChars(name, legal) && name.compare("NULL") != 0;
+	//valid name
 }
 
 bool isValidVersion(string vers) {
@@ -181,7 +190,7 @@ void updateFile(string filename) {
 		for (list<Device*>::iterator dit = devs.begin(); dit != devs.end(); ++dit) {//print all devices in the group
 			Device* dev = *dit;
 			
-			file << "\t" << dev->getID() << delim << dev->getIP() << delim << dev->getName() << delim << dev->firmware_version() << delim << dev->hardware_version() << endl;
+			file << "\t" << dev->toString() << endl;
 			//    ID : IP : NAME : FV : HV
 		}
 	}
@@ -222,8 +231,8 @@ bool loadFile(string filename) {
 	
 	DeviceGroup* grp;
 	
-	long id;
-	string ip, name, f_vers, h_vers;
+	int level;
+	string ip, name, serial, f_vers, h_vers;
 	
 	while(getline(file, line)) {
 		if (line[0] == '\t') {//device
@@ -233,14 +242,16 @@ bool loadFile(string filename) {
 			
 			vector<string> data = split(line, delim);
 			
-			id = atol(trim(data[0]).c_str());
-			ip = trim(data[1]);
-			name = trim(data[2]);
-			f_vers = trim(data[3]);
+			ip = trim(data[0]);
+			name = trim(data[1]);
+			serial = trim(data[2]);
+			level = atoi(trim(data[3]).c_str());
+			f_vers = trim(data[4]);
 			h_vers = trim(line.substr(line.rfind(delim) + 1));
 			
-			Device* dev = new Device(id, ip, name);
+			Device* dev = new Device(ip, name, serial);
 			
+			dev->setLightLevel(level);
 			dev->set_f_vers(f_vers);
 			dev->set_h_vers(h_vers);
 			
@@ -249,4 +260,6 @@ bool loadFile(string filename) {
 			grp = new DeviceGroup(trim(line.substr(0, line.find("("))));
 		}
 	}
+	
+	return true;
 }
