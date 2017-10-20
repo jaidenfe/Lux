@@ -19,6 +19,7 @@
 #define LISTEN_QUEUE_SIZE 5
 #define MESSAGE_SIZE 1024
 #define REG_KEY "e7Cv2ro_8K"
+#define DATA_FILE "../devman/devices.dat"
 
 using namespace std;
 

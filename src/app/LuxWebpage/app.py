@@ -1,194 +1,121 @@
-from flask import Flask,request,jsonify,render_template
-import socket,json
-#from flask.ext.bcrypt import Bcrypt
+from flask import Flask, request, jsonify, render_template
+import socket, json
 
-#"Database"
-class Data:
-    uuid  = "1234"
-    level = 10
-    command = 0
-    data_field = {}         #data_field is a dictionary that stores everything in the key "data", it changes constantly because it is use in communication.
-    webapp_dict = {}        #Stores web client request
-    server_dict = {}        #Stores server's response
-    login_info= {"id":"admin@admin.com","pass":"admin"}
-    user_info = {1 :{"Device":"Dummy","Group":"Dummy","serial_num":"Dummy","light_level": 0}}
-    host = socket.gethostname()
-    port = 8080
+sock = None#socket
+host = "127.0.0.1"#host address
+port = 8080
+buf_size = 1024#max message size
+dict = None#last recieved message in map format
+connected = False
 
-#This class handles what JSON string is sent to the server base on command from web client using switch statment
-class JSON_S:
-    def switcher(self, command):
-        command_string = getattr(self, command, lambda: "nothing")
-        return command_string()
-    def update_req(self):
-        if Data.level == 0:
-            Data.level = 10
-        elif Data.level == 10:
-            Data.level = 0
-        #d_string = ''
-        #for key in Data.data_field:
-            #if (key != "serial_num"):
-                #if isinstance(Data.data_field[key], int):
-                    #d_string += '"' + key + '":' +  str(Data.data_field[key]) +  ','
-                #else:
-                   # d_string += '"'+key+'":'+'"'+Data.data_field[key]+'"'+ ','
-        #d_string = d_string[:-1]
-        c_string = str(Data.level) + '\n'#'{"cmd":"4","uuid":"0","serial":"abc123","data":{"level":"' + str(Data.level) +  '"}}'
-        return c_string
-    def status_req(self):
-        c_string = '{"cmd":' + str(Data.command) + ',"uuid":"0","serial":"' + 'SERIAL' + '"data":{' + '}}'
-        return c_string
-    # def status_ack(self):
-    #     c_string = '{"cmd": '+ '"status_ack"}'
-    #     return c_string
-    # def update_ack(self):
-    #     c_string = '{"cmd": '+ '"update_ack"}'
-    #     return c_string
+REGISTER = 0
+CONNECT = 1
+STATUS_REQUEST = 2
+STATUS = 3
+UPDATE_REQUEST = 4
+UPDATE = 5
+DISCONNECT_REQUEST = 6
+DISCONNECT = 7
+UNREGISTER = 8
+FORCE_DISCONNECT = 9
+TEST = 10
+REG_REQUEST = 11
 
-#This class handle all connection and communication from web client
-class connection:
-    def __init__(self,host,port,retryAttempts=3):
-        self.host = host
-        self.port = port
-        self.retryAttempts = retryAttempts
-        self.socket = None
-    def connect(self, attempt = 0):
-        if attempt < self.retryAttempts:
-            self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            server_addr = (self.host, self.port)
-            self.socket.connect(server_addr)
-        if self.socket is None and attemps < self.retryAttempts:
-            print("Connection failed"+ attempt)
-            self.connect(attempt+1)
-        if self.socket:
-            print("Connection success! ")
-    def disconnect(self):
-        self.socket.close()
-        self.socket = None
-        print("Connection close")
-    def sendToServer(self):             #The function that encode a JSON string to the server base on command
-        json_s = JSON_S()
-        rawMessage = json_s.switcher("update_req")
-        message = rawMessage.encode()
-        print("sending {!r}".format(message))
-        self.socket.sendall(message)
-    def readServer(self):               #Reciveve JSON string and stores it in server_dict
-        json_s = self.socket.recv(1024).split(b'\0', 1)[0]
-        print(json_s)
-        Data.server_dict = json.loads(json_s.decode('utf-8'))
-        print("received {!r}".format(json_s))				#h
-    def communication(self):            #The communication function control what is stores,recieve and sent commands base on web client and server
-        #if Data.webapp_dict['cmd'] == "status_req":         #If web client sent status_req
-        #    Data.command = 2                                #Set command to status_req
-        #    self.sendToServer()                             #This sents a JSON string to server base on command
-        #    self.readServer()                               #This read from server and stores it server_dict
-        #    Data.command = Data.server_dict['cmd']          #Stores each key individually from server_dict *might be remove since I think we can just use server dict*
-        #    Data.uuid = Data.server_dict['uuid']
-        #    Data.serial_num = Data.server_dict["serial"]
-        #    Data.data_field = Data.server_dict["data"]
-        #    Data.data_field["serial"] = Data.server_dict["serial"]
-        #    if Data.command == 3:
-        #        Data.user_info[2] = Data.data_field
-            # Data.command = "status_ack"
-        #   self.sendToServer()
-        #elif Data.webapp_dict['cmd'] == 'update_req':
-        Data.command = 4
-        #    Data.data_field = Data.webapp_dict['da]
-        self.sendToServer()
-        #    self.readServer()
-        #    Data.command = Data.server_dict['cmd']
-        #    if Data.command == 5:
-        #        Data.uuid = Data.server_dict['uuid']
-        #        Data.serial_num = Data.server_dict["serial"]
-        #        Data.data_field = Data.server_dict["data"]
-        #        Data.data_field["serial"] = Data.server_dict["serial"]
-            # Data.command = "update_ack"
-        #    self.sendToServer()
-
-#Flask webframwork
 app = Flask(__name__)
 
-#Handling GET request for rendering template#
-@app.route('/',methods=['GET','POST'])
-def index_page():
+@app.route('/', methods=['GET'])
+@app.route('/index.html', methods=['GET'])
+def index():
     return render_template('index.html')
 
-@app.route('/Luxabout.html',methods=['GET','POST'])
-def about_page():
-    return render_template('Luxabout.html')
+@app.route('/about.html', methods=['GET'])
+def about():
+    return render_template('about.html')
 
-@app.route('/index.html',methods=['GET','POST'])
-def home_page():
-    return render_template('index.html')
+@app.route('/dashboard.html', methods=['GET'])
+def dashboard():
+    connect()
+    return render_template('dashboard.html')
 
-@app.route('/LuxLogin.html',methods=['GET','POST'])
-def login_page():
-    return render_template('LuxLogin.html')
+@app.route('/status_req', methods=['POST'])
+def status_req():
+    rcvd = request.get_json()
+    resp = ""
+    if (rcvd != None):
+        command = STATUS_REQUEST
+        msg = '{"cmd":' + str(command) + ',"uuid":"0","serial":"0","data":{}}'
+        send(msg)#status_req
+        
+        resp = '{"1" :' + read().decode('utf-8') + "}"#TODO read and return combined JSON once end delimiter/message is found (not yet implemented by server)
+        
+        print(resp)
+    #render_template('dashboard.html')
+    return resp
+        
 
-@app.route('/Luxverified.html',methods=['GET','POST'])
-def verified_page():
-    #my_json = {"cmd":"status_req"}
-    #Data.webapp_dict = my_json
-    #Data.server_dict={}
-    #client_py = connection(Data.host,Data.port)
-    #client_py.connect()
-    #client_py.communication()
-    #client_py.disconnect()
-    #if Data.webapp_dict['cmd'] == "status_req":
-    #    if 2 in Data.user_info:
-    #        return jsonify(Data.user_info)
-    #    else:
-    #        return jsonify({"table":"failed"})
-    #elif Data.webapp_dict['cmd'] == "update_req":
-    #    print("Data: " + str(Data.data_field))
-    #    print("Web: " + str(Data.webapp_dict))
-    #    for keys in Data.data_field:
-    #        if Data.data_field[keys] != Data.webapp_dict["data"][keys]:
-    #            return jsonify({"light_level":"failed"})
-    #    Data.user_info[2] = Data.data_field
-    #    return jsonify(Data.user_info)
+@app.route('/update_req', methods=['POST'])
+def update_req():
+    rcvd = request.get_json()
+    if (rcvd != None):
+        command = rcvd["cmd"]
+        uuid = rcvd["uuid"]
+        serial = rcvd["serial"]
+        name = rcvd["data"]["name"]
+        level = rcvd["data"]["level"]
+        
+        msg = '{"cmd":' + str(command) + ',"uuid":"' + uuid + '","serial":"' + serial + '","data":{"name":"' + name + '","level":"' + str(level) + '"}}'
+        send(msg)
+        
+        resp = read().decode('utf-8')
+    return resp#render_template('dashboard.html')
 
-    return render_template('Luxverified.html')
+@app.route('/unregister', methods=['POST'])
+def unregister():
+    rcvd = request.get_json()
+    if (rcvd != None):
+        command = UNREGISTER
+        uuid = "0"
+        serial = rcvd["serial"]
+        msg = '{"cmd":' + str(command) + ',"uuid": uuid ,"serial": serial ,"data":{}}'
+        connect()
+        send(msg)
+        disconnect()
+    return render_template('dashboard.html')
 
-@app.route('/Luxcontact.html',methods=['GET','POST'])
-def contact_page():
-    return render_template('Luxcontact.html')
-#Handling GET request for rendering template#
+def connect():
+    global connected, sock
+    if (connected):
+        return#don't make a second connection
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.setblocking(True)
+    sock.connect((host, port))
+    connected = True
+    print("Connection established.")
 
-@app.route('/login_all',methods=['POST'])
-def login():
-    verification = request.get_json()
-    print(verification)
-    identity = verification['id']
-    password = verification['pass']
-    if(identity == Data.login_info["id"] and password == Data.login_info["pass"]):
-        return "success"
-    else:
-        return "failure"
+def disconnect():
+    global connected, sock
+    if (not connected):
+        return#not connected, don't try to d/c
+    
+    msg = '{"cmd":"7","uuid":"0","serial":"0","data":{}}'
+    send(msg)#DISCONNECT -> client_exit();
+    
+    sock.close()
+    sock = None
+    connected = False
+    print("Connection terminated.")
 
-@app.route('/login',methods=['POST'])
-def process():
-    print("request")
-    my_json = request.get_json()
-    Data.webapp_dict = my_json
-    #Data.server_dict={}
-    client_py = connection(Data.host,Data.port)
-    client_py.connect()
-    client_py.communication()
-    #client_py.disconnect()
-    #if Data.webapp_dict['cmd'] == "status_req":
-    #    if 2 in Data.user_info:
-    #        return jsonify(Data.user_info)
-    #    else:
-    #        return jsonify({"table":"failed"})
-    #elif Data.webapp_dict['cmd'] == "update_req":
-    #    print("Data: " + str(Data.data_field))
-    #    print("Web: " + str(Data.webapp_dict))
-    #    for keys in Data.data_field:
-    #        if Data.data_field[keys] != Data.webapp_dict["data"][keys]:
-    #            return jsonify({"light_level":"failed"})
-    #    Data.user_info[2] = Data.data_field
-    return "done"
+def send(msg):
+    global connected, sock
+    if (not connected or sock == None):
+        print("Attempted to send data without connection.")
+        return
+    sock.sendall(str.encode(msg))
+
+def read():
+    msg = sock.recv(buf_size).split(b'\0', 1)[0]
+    return msg
+    #dict = json.loads(msg.decode("utf-8"))
 
 if __name__ == "__main__":
     app.run(debug=True)
