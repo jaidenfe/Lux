@@ -115,76 +115,77 @@ std::string Json::jsonify(){
 
 	std::string json_string;
 
-	json_string = "{\"cmd\":"+std::to_string(cmd)+",\"uuid\":\""+uuid+"\",\"serial\":\""+serial+"\",\"data\":{";
+	json_string = "{\"cmd\":\""+std::to_string(cmd)+"\",\"uuid\":\""+uuid+"\",\"serial\":\""+serial+"\",\"data\":{";
 
 	switch(cmd){
                 case REGISTER:
-                        if(data["auth_key"]!="") json_string = json_string + "\"auth_key\":\""+data["auth_key"]+"\",";
+                        if(data["reg_key"]!="") json_string = json_string + "\"reg_key\":\""+data["reg_key"]+"\",";
                         if(data["hardware_version"]!="") json_string = json_string + "\"hardware_version\":"+data["hardware_version"]+",";
                         if(data["firmware_version"]!="") json_string = json_string + "\"firmware_version\":"+data["firmware_version"];
-			json_string = json_string + "}";
+                        json_string = json_string + "}";
                         break;
 
                 case CONNECT:
                         if(data["hardware_version"]!="") json_string = json_string + "\"hardware_version\":"+data["hardware_version"]+",";
                         if(data["firmware_version"]!="") json_string = json_string + "\"firmware_version\":"+data["firmware_version"];
-			json_string = json_string + "}";
+                        json_string = json_string + "}";
                         break;
 
                 case STATUS_REQUEST:
                         // No data field required
-			json_string = json_string + "}";
+                        json_string = json_string + "}";
                         break;
 
                 case STATUS:
                         if(data["level"]!="") json_string = json_string + "\"level\":" + data["level"];
-			json_string = json_string + "}";
+                        if(data["name"]!="") json_string = json_string+",\"name\":\""+data["name"]+"\"";
+                        json_string = json_string + "}";
                         break;
 
                 case UPDATE_REQUEST:
                         if(data["devices"]!="") json_string = json_string+"\"devices\":\""+data["devices"]+"\"";
-                        if(data["name"]!="") json_string = json_string+",\"name\":\""+data["name"]+"\'";
+                        if(data["name"]!="") json_string = json_string+",\"name\":\""+data["name"]+"\"";
                         if(data["add_group"]!="") json_string = json_string+",\"add_group\":\""+data["add_group"]+"\"";
                         if(data["remove_group"]!="") json_string = json_string+",\"remove_group\":\""+data["remove_group"]+"\"";
                         if(data["level"]!="") json_string = json_string+",\"level\":"+data["level"];
-			json_string = json_string + "}";
+                        json_string = json_string + "}";
                         break;
 
-		case UPDATE:
+                case UPDATE:
                         if(data["level"]!="") json_string = json_string + "\"level\":"+data["level"];
-			json_string = json_string + "}";
+                        json_string = json_string + "}";
                         break;
 
                 case DISCONNECT_REQUEST:
-			if(data["devices"]!="") json_string = json_string + "\"devices\":\""+data["devices"]+"\"";
-			json_string = json_string + "}";
+                        if(data["devices"]!="") json_string = json_string + "\"devices\":\""+data["devices"]+"\"";
+                        json_string = json_string + "}";
                         break;
 
                 case DISCONNECT:
                         // no data to send
-			json_string = json_string + "}";
+                        json_string = json_string + "}";
                         break;
 
                 case UNREGISTER:
                         // no data to send
-			json_string = json_string + "}";
+                        json_string = json_string + "}";
                         break;
 
                 case FORCE_DISCONNECT:
                         // maybe an error message?
                         if(data["error"]!="") json_string = json_string + "\"error\":\""+data["error"]+"\"";
-			json_string = json_string + "}";
+                        json_string = json_string + "}";
                         break;
 
                 case TEST:
                         // Test message to send
                         if(data["message"]!="") json_string = json_string + "\"message\":\""+data["message"]+"\"";
-			json_string = json_string + "}";
+                        json_string = json_string + "}";
                         break;
 
                 default:
                         std::cerr << "Error: Not a valid command." << std::endl;
-			json_string = "{\"error\":\"not a valid command\"}";
+                        json_string = "{\"error\":\"not a valid command\"}";
         }
 
 	json_string = json_string + "}";

@@ -118,14 +118,14 @@ string DeviceGroup::getName() {
 
 Device* byIP(string ip) {
 	if (devs_ip.count(ip) == 0) {//no device found
-		return new Device("NULL", "NULL", "NULL");
+		return NULL;
 	}
 	return devs_ip[ip];
 }
 
 Device* bySerial(string serial) {
 	if (devs_s.count(serial) == 0) {//no device found
-		return new Device("NULL", "NULL", "NULL");
+		return NULL;
 	}
 	return devs_s[serial];
 }
@@ -164,7 +164,7 @@ bool isValidVersion(string vers) {
 
 DeviceGroup byGroupName(string name) {
 	if (grps_n.count(name) == 0) {//no group found
-		return DeviceGroup("NULL");
+		return DeviceGroup("NULL");//TODO return pointer
 	}
 	return *grps_n[name];
 }
