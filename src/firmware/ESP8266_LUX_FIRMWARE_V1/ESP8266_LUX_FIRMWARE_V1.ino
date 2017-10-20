@@ -3,32 +3,34 @@
 #include <EEPROM.h>
 #include <ESP8266WebServer.h>
 
-#define NETWORK_TIMEOUT 10
+#define NETWORK_TIMEOUT 20
 #define MAX_HUB_CONNECT_ATTEMPT 3
 #define EEPROM_VAR_LEN 85
 
 // Replace these with the JSON Library
 #define REG_KEY "e7Cv2ro_8K"
-#define REGISTER 0
-#define CONNECT 1
-#define STATUS_REQUEST 2
-#define STATUS 3
-#define STATUS_ACK 4
-#define UPDATE 6
-#define DISCONNECT_REQUEST 8
-#define DISCONNECT 9
-#define DISCONNECT_ACK 10
-#define FORCE_DISCONNECT 13
-#define TEST 14
+#define REGISTER 0            // TX
+#define CONNECT 1             // TX
+#define STATUS_REQUEST 2      // RX
+#define STATUS 3              // TX
+#define UPDATE_REQUEST 4      // N/A
+#define UPDATE 5              // RX
+#define DISCONNECT_REQUEST 6  // RX
+#define DISCONNECT 7          // TX
+#define UNREGISTER 8          // RX
+#define FORCE_DISCONNECT 9    // RX
+#define TEST 10               // RX
+#define REG_REQUEST 11        // RX
 
 // Serial Number defined by:
 //   [L][HHH][PPPPPP][VV]
 //      L - (1) - All Lux Serial Numbers must start with 'L'
 //      H - (3) - Hardware Version Number (##.#) without decimal (numeric)
-//      P - (6) - Production number (alpha-numeric, case-sensitive)
+//      P - (6) - Production number (pha-numeric, case-sensitive)
 //      V - (2) - Device Code (case-insensitive/caps only) [Lux SmartSocket Device Code: 'SS'] 
 #define SERIAL_NUM "L001000000SS"
-#define HARDWARE_V "0.1"  // No actual hardware, just ESP8266 and LED
+//#define HARDWARE_V "0.1"  // No actual hardware, just ESP8266 and LED
+#define HARDWARE_V "0.2" // Protoboard with 12V dc supplied externally and AC supplied externally. ESP8266 powered by FTDI cable.
 #define FIRMWARE_V "1.0"
 #define LUX_FIRMWARE_V1_0
 #define FIRMWARE_VERSION_CHECK(fv, check) fv==check
@@ -246,28 +248,24 @@ void handleRoot() {
   int o3 = HUB_ip.indexOf(".", o2 + 1);
   String s;
   if(!hub_info){
-    s = "<!DOCTYPE html><html><head><title>LUX Configuration</title><style>body{font-family: sans-serif;background-color: #EAE7DC;}#settings{width: 40%;height: auto;color: #E85A4F;padding-top: 1%;padding-bottom: 2%;background-color: none;}.addr{width: 30px;}</style></head><body>"
-             + String("<center><div id=\"settings\"><center><form name=\"configuration\"><h1>LUX Network Configuration</h1><hr>")
-             + "SSID: <input type=\"text\" name=\"network_ssid\" value=\"" + LAN_ssid + "\"><br>"
-             + "Password: <input type=\"password\" name=\"network_pwrd\" value=\"" + LAN_pwrd + "\"><br><br>"
-             + "Hub IP Address: <input class=\"addr\" maxlength=\"3\" type=\"text\" name=\"hub_ip_0\" value=\"" + HUB_ip.substring(0, o1) + "\">"
-             + ". <input class=\"addr\" maxlength=\"3\" type=\"text\" name=\"hub_ip_1\" value=\"" + HUB_ip.substring(o1+1, o2) + "\">"
-             + ". <input class=\"addr\" maxlength=\"3\" type=\"text\" name=\"hub_ip_2\" value=\"" + HUB_ip.substring(o2+1, o3) + "\">"
-             + ". <input class=\"addr\" maxlength=\"3\" type=\"text\" name=\"hub_ip_3\" value=\"" + HUB_ip.substring(o3+1) + "\">"
-             + ": <input class=\"addr\" type=\"text\" name=\"hub_port\" value=\"" + String(HUB_port) + "\"><br><br>"
-             + "<input name=\"Submit\"  type=\"submit\" value=\"Apply Configuration\"/>"
-             + "</form></center></div></center></body></html>";
+    s = "<!DOCTYPE html><html><head><title>LUX Configuration</title><style>body{font-family: sans-serif;background-color: #424141;}#container{position: absolute;left: 50%;height: auto;z-index: 100;width: 40%;min-width: 420px;}#settings{position: relative;left: -50%;color: #45a29e;margin-top: 5%;padding-top: 2%;padding-bottom: 2%;padding-left: 5%;padding-right: 5%;background-color: #222629;-moz-border-radius:34px;-webkit-border-radius:34px;border-radius:34px;}.addr{width: 30px;}.myButton {background-color:#45a29e;-moz-border-radius:24px;-webkit-border-radius:24px;border-radius:24px;display:inline-block;font-size:17px;padding:8px 35px;text-decoration:none;color: white;}.myButton:hover {background-color:#408c99;}.myButton:active {position:relative;}</style></head><body>"
+          + String("<center><div id=\"container\"><div id=\"settings\"><center><h1>LUX Network Configuration</h1><hr>")
+          + "<p><b>Firmware Version: </b>" + FIRMWARE_V +"<br>"
+          + "<b>Hardware Version: </b>" + HARDWARE_V + "<br>"
+          + "<b>Serial Number: </b>" + SERIAL_NUM + "</p><hr>"
+          + "<form name=\"configuration\">"
+          + "SSID: <input type=\"text\" name=\"network_ssid\" value=\"" + LAN_ssid + "\"><br>"
+          + "Password: <input type=\"password\" name=\"network_pwrd\" value=\"" + LAN_pwrd + "\"><br><br>"
+          + "Hub IP Address: <input class=\"addr\" maxlength=\"3\" type=\"text\" name=\"hub_ip_0\" value=\"" + HUB_ip.substring(0, o1) + "\"> . <input class=\"addr\" maxlength=\"3\" type=\"text\" name=\"hub_ip_1\" value=\"" + HUB_ip.substring(o1+1, o2) + "\"> . <input class=\"addr\" maxlength=\"3\" type=\"text\" name=\"hub_ip_2\" value=\"" + HUB_ip.substring(o2+1, o3) + "\"> . <input class=\"addr\" maxlength=\"3\" type=\"text\" name=\"hub_ip_3\" value=\"" + HUB_ip.substring(o3+1) + "\">: <input class=\"addr\" type=\"text\" name=\"hub_port\" value=\"" + String(HUB_port) + "\"><br><br><input name=\"Submit\" type=\"submit\" class=\"myButton\" value=\"Apply Configuration\"/></form></center></div></div></center></body></html>";  
   }
   else{
-    s = "<!DOCTYPE html><html><head><title>LUX Configuration</title><style>body{font-family: sans-serif;background-color: #EAE7DC;}#settings{width: 40%;height: auto;color: #E85A4F;padding-top: 1%;padding-bottom: 2%;background-color: none;}.addr{width: 30px;}</style></head><body>"
-             + String("<center><div id=\"settings\"><center><form name=\"configuration\"><h1>LUX Network Configuration</h1><hr>")
-             + "Hub IP Address: <input class=\"addr\" maxlength=\"3\" type=\"text\" name=\"hub_ip_0\" value=\"" + HUB_ip.substring(0, o1) + "\">"
-             + ". <input class=\"addr\" maxlength=\"3\" type=\"text\" name=\"hub_ip_1\" value=\"" + HUB_ip.substring(o1+1, o2) + "\">"
-             + ". <input class=\"addr\" maxlength=\"3\" type=\"text\" name=\"hub_ip_2\" value=\"" + HUB_ip.substring(o2+1, o3) + "\">"
-             + ". <input class=\"addr\" maxlength=\"3\" type=\"text\" name=\"hub_ip_3\" value=\"" + HUB_ip.substring(o3+1) + "\">"
-             + ": <input class=\"addr\" type=\"text\" name=\"hub_port\" value=\"" + String(HUB_port) + "\"><br><br>"
-             + "<input name=\"Submit\"  type=\"submit\" value=\"Apply Configuration\"/>"
-             + "</form></center></div></center></body></html>";
+    s = "<!DOCTYPE html><html><head><title>LUX Configuration</title><style>body{font-family: sans-serif;background-color: #424141;}#container{position: absolute;left: 50%;height: auto;z-index: 100;width: 40%;min-width: 420px;}#settings{position: relative;left: -50%;color: #45a29e;margin-top: 5%;padding-top: 2%;padding-bottom: 2%;padding-left: 5%;padding-right: 5%;background-color: #222629;-moz-border-radius:34px;-webkit-border-radius:34px;border-radius:34px;}.addr{width: 30px;}.myButton {background-color:#45a29e;-moz-border-radius:24px;-webkit-border-radius:24px;border-radius:24px;display:inline-block;font-size:17px;padding:8px 35px;text-decoration:none;color: white;}.myButton:hover {background-color:#408c99;}.myButton:active {position:relative;}</style></head><body><center><div id=\"container\"><div id=\"settings\">"
+          + String("<center><h1>LUX Network Configuration</h1><hr>")
+          + "<p><b>Firmware Version: </b>"+ FIRMWARE_V +"<br>"
+          + "<b>Hardware Version: </b>" + HARDWARE_V + "<br>"
+          + "<b>Serial Number: </b>" + SERIAL_NUM + "</p><hr>"
+          + "<form name=\"configuration\">"
+          + "Hub IP Address: <input class=\"addr\" maxlength=\"3\" type=\"text\" name=\"hub_ip_0\" value=\"" + HUB_ip.substring(0, o1) + "\"> . <input class=\"addr\" maxlength=\"3\" type=\"text\" name=\"hub_ip_1\" value=\"" + HUB_ip.substring(o1+1, o2) + "\"> . <input class=\"addr\" maxlength=\"3\" type=\"text\" name=\"hub_ip_2\" value=\"" + HUB_ip.substring(o2+1, o3) + "\"> . <input class=\"addr\" maxlength=\"3\" type=\"text\" name=\"hub_ip_3\" value=\"" + HUB_ip.substring(o3+1) + "\">: <input class=\"addr\" type=\"text\" name=\"hub_port\" value=\"" + String(HUB_port) + "\"><br><br><input name=\"Submit\" type=\"submit\" class=\"myButton\" value=\"Apply Configuration\"/></form></center></div></div></center></body></html>";
   }
   server.send(200, "text/html", s);
   
@@ -398,10 +396,16 @@ void loop(void) {
         // send register/connect command
         String initpack;
         if(!Registered){
-          initpack = String(REGISTER) + "|" + REG_KEY + "|";
+          initpack = "{\"cmd\":"+String(REGISTER) + ",\"uuid\":\"0\",\"serial\":\""+SERIAL_NUM+"\",\"data\":{\"reg_key\":\""+REG_KEY+"\",\"hardware_version\":\""+HARDWARE_V+"\",\"firmware_version\":\""+FIRMWARE_V+"\"}}";
+#ifdef DEBUG
+          Serial.println("    Sending: REGISTER");
+#endif
         }
         else{
-          initpack = String(CONNECT) + "|Connecting|";
+          initpack = "{\"cmd\":"+String(CONNECT) + ",\"uuid\":\"0\",\"serial\":\""+SERIAL_NUM+"\",\"data\":{\"hardware_version\":\""+HARDWARE_V+"\",\"firmware_version\":\""+FIRMWARE_V+"\"}}";
+#ifdef DEBUG
+          Serial.println("    Sending: CONNECT");
+#endif
         }
         client.write(initpack.c_str());
 #ifdef DEBUG
@@ -411,66 +415,43 @@ void loop(void) {
           // Checking that there is data to receive from server (Hub)
           if(client.available()){
             String data = client.readStringUntil('\n');
-#ifdef DEBUG
-            Serial.println("Received: " + data);
-#endif
             // TODO: Turn data into JSON Object
             // TODO: Validate proper packet information (contains correct serial number, etc.)
-            int cmd = data.substring(0, data.indexOf("|")).toInt();
-            String payload = data.substring(data.indexOf("|") + 1);
+            int cmd;
+            String payload;
+            if(data.indexOf("|") != -1){
+              cmd = data.substring(0, data.indexOf("|")).toInt();
+              payload = data.substring(data.indexOf("|") + 1);
+            }
+            else{
+              cmd = data.toInt();
+              payload = "";
+            }
             // switch cmd type
             String packet;
             switch(cmd){
               
               case STATUS_REQUEST:
+#ifdef DEBUG
+                  Serial.println("Received: STATUS REQUEST");
+#endif
                   // Send STATUS cmd and wait for STATUS_ACK or FORCE_DISCONNECT
                   if(!Registered){
                     Registered = true;
                   }
                   save_network_settings();
-                  if(Lux_status > 0){
-                    packet = String(STATUS) + "|ON|";
-                  }
-                  else{
-                    packet = String(STATUS) + "|OFF|";
-                  }
+                  packet = "{\"cmd\":"+String(STATUS) + ",\"uuid\":\"0\",\"serial\":\""+SERIAL_NUM+"\",\"data\":{\"level\":"+String(Lux_status)+"}}";
+#ifdef DEBUG
+                  Serial.println("    Sending: STATUS");
+#endif
                   client.write(packet.c_str());
-
-                  wait_for_response = true;
-                  while(wait_for_response){
-                    if(client.available()){
-                      String ret = client.readStringUntil('\n');
-                      int rcmd = ret.substring(0, ret.indexOf("|")).toInt();
-                      switch(rcmd){
-                        case STATUS_ACK:
-                            // All is good in the world, you can terminate cmd routine
-                            wait_for_response = false;
-                            break;
-
-                        case FORCE_DISCONNECT:
-                            // Immediately terminate connection, something has gone terribly wrong!
-#ifdef DEBUG
-                            Serial.println("Received a FORCE_DISCONNECT Command.");
-#endif
-                            client.stop();
-                            wait_for_response = false;
-                            break;
-
-                        default:
-                            // Ignore what we got, resend the STATUS cmd
-                            // TODO: Resend the STATUS cmd
-#ifdef DEBUG
-                            Serial.println("Got a different cmd than expected for response!");
-#endif
-                            delay(100);
-                      }
-                    }
-                    else delay(500);
-                  }
                   break;
 
                   
               case UPDATE:
+#ifdef DEBUG
+                  Serial.println("Received: UPDATE");
+#endif
                   // TODO: Update to use actual JSON utility
                   // Send STATUS cmd and wait for STATUS_ACK or FORCE_DISCONNECT
                   if(payload == "ON"){
@@ -482,95 +463,52 @@ void loop(void) {
                     Lux_status = 0;
                   }
 
-                  packet = String(STATUS) + "|" + String(Lux_status) + "|";
+                  packet = "{\"cmd\":"+String(STATUS) + ",\"uuid\":\"0\",\"serial\":\""+SERIAL_NUM+"\",\"data\":{\"level\":"+String(Lux_status)+"}}";
+#ifdef DEBUG
+                  Serial.println("    Sending: STATUS");
+#endif
                   client.write(packet.c_str());
-
-                  wait_for_response = true;
-                  while(wait_for_response){
-                    if(client.available()){
-                      String ret = client.readStringUntil('\n');
-                      int rcmd = ret.substring(0, ret.indexOf("|")).toInt();
-                      switch(rcmd){
-                        case STATUS_ACK:
-                            // All is good in the world, you can terminate cmd routine
-                            wait_for_response = false;
-                            break;
-
-                        case FORCE_DISCONNECT:
-                            // Immediately terminate connection, something has gone terribly wrong!
-#ifdef DEBUG
-                            Serial.println("Received a FORCE_DISCONNECT Command.");
-#endif
-                            client.stop();
-                            wait_for_response = false;
-                            break;
-
-                        default:
-                            // Ignore what we got, resend the STATUS cmd
-                            // TODO: Resend STATUS cmd
-#ifdef DEBUG
-                            Serial.println("Got a different cmd than expected for response!");
-#endif
-                            delay(100);
-                      }
-                    }
-                    else delay(500);
-                  }     
                   break;
 
 
               case DISCONNECT_REQUEST:
+#ifdef DEBUG
+                  Serial.println("Received: DISCONNECT REQUEST");
+#endif
                   // Send DISCONNECT and wait for DISCONNECT_ACK or FORCE_DISCONNECT
                   // then terminate client connection to Hub
-                  packet = String(DISCONNECT) + "|Disconnecting|";
+                  packet = "{\"cmd\":"+String(DISCONNECT) + ",\"uuid\":\"0\",\"serial\":\""+SERIAL_NUM+"\",\"data\":{}}";
+#ifdef DEBUG
+                  Serial.println("    Sending: DISCONNECT");
+#endif
                   client.write(packet.c_str());
-
-                  wait_for_response = true;
-                  while(wait_for_response){
-                    if(client.available()){
-                      String ret = client.readStringUntil('\n');
-                      int rcmd = ret.substring(0, ret.indexOf("|")).toInt();
-                      switch(rcmd){
-                        case DISCONNECT_ACK:
-                            // All is good in the world, you can terminate cmd routine
-                            client.stop();
-                            wait_for_response = false;
-#ifdef DEBUG
-                            Serial.println("Disconnection Acknowledged");
-#endif
-                            break;
-
-                        case FORCE_DISCONNECT:
-#ifdef DEBUG
-                            Serial.println("Received a FORCE_DISCONNECT Command.");
-#endif
-                            // Immediately terminate connection, something has gone terribly wrong!
-                            client.stop();
-                            wait_for_response = false;
-                            break;
-
-                        default:
-                            // Ignore what we got, resend the STATUS cmd
-#ifdef DEBUG
-                            Serial.println("Got a different cmd than expected for response!");
-#endif
-                            // TODO: resend STATUS cmd
-                            delay(100);
-                      }
-                    }
-                    else delay(500);
-                  }
+                  client.stop();
                   break;
                   
               case FORCE_DISCONNECT:
 #ifdef DEBUG
-                  Serial.println("Received a FORCE DISCONNECT Command. Restarting Hub Connection.");
+                  Serial.println("Received: FORCE DISCONNECT\nRestarting Hub Connection.");
 #endif
                   // Terminate client connection to Hub
                   client.stop();
                   break;
+
+              case REG_REQUEST:
+#ifdef DEBUG
+                  Serial.println("Received: REGISTRATION REQUEST");
+#endif
+                  Registered = false;
+                  packet = "{\"cmd\":"+String(REGISTER) + ",\"uuid\":\"0\",\"serial\":\""+SERIAL_NUM+"\",\"data\":{\"reg_key\":\""+REG_KEY+"\",\"hardware_version\":\""+HARDWARE_V+"\",\"firmware_version\":\""+FIRMWARE_V+"\"}}";
+#ifdef DEBUG
+                  Serial.println("    Sending: REGISTER");
+#endif
+                  client.write(packet.c_str());
+                  break;
                   
               default:
+#ifdef DEBUG
+                  Serial.println("Received: " + data);
+#endif
                   // TODO Figure out what the defualt would be... there is an error, maybe disconnect
                   // from server and try to re-connect?
                   delay(100);
