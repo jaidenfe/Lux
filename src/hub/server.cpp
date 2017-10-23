@@ -1,237 +1,693 @@
-#include <iostream>
-#include <stdio.h>
-#include <unistd.h>
-#include <sys/socket.h>
-#include <stdlib.h>
-#include <netinet/in.h>
-#include <string>
-#include <pthread.h>
-#include <vector>
+#include "server.h"
 
-#define PORT 8080
-#define READ_WAIT_PERIOD 1000000
-//#define DEBUG
+int sockfd;
+bool running = false;
 
-struct Args{
-	int sock;
-	int server;
-	int devices[20] = {0};
-	struct sockaddr_in soc_address;
-	int address_length;
-	int device_num;
-	int target_dev;
-};
+cmd_map server_commands;
 
-int sock;
-int server_fd;
-struct sockaddr_in address;
-int opt;
-int addrlen;
-char buffer[1024];
-bool auth;
-bool ext;
-int device_count;
+//FD<->SERIAL
+map<int, string> fd_to_ser;//<fd, serial>
+map<string, int> ser_to_fd;//<serial, fd>
 
-//pthread_mutex_t recv_mutex     = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t print_mutex    = PTHREAD_MUTEX_INITIALIZER;
+//IP->FD
+map<string, int> by_ip;
 
-void setup(Args* av){
+set<string> reg_devs;//<serial #>
 
-	opt = 1;
-	av->address_length = sizeof(av->soc_address);
-	auth = false;
-	av->device_num = 0;
-	av->target_dev = -1;
+set<int> waiting_on_status;//<web client fd>
 
-	if((av->server = socket(AF_INET, SOCK_STREAM, 0)) == 0){
-		// Handle Exception
-		pthread_mutex_lock( &print_mutex );
-		std::cout << "Error creating socket" << std::endl;
-		pthread_mutex_unlock( &print_mutex );
+map<int, int> changed_fds;//<old fd, new fd>
+
+pthread_mutex_t mtx = PTHREAD_MUTEX_INITIALIZER;
+
+void* accept_devices(void* client_addr);
+void* read_client(void* client_fd_ptr);
+string uuid_gen();
+
+//Client->Server
+void client_exit(int client_fd, string message);
+void client_test(int client_fd, string message);
+void client_register(int client_fd, string message);
+void client_connect(int client_fd, string message);
+void client_status(int client_fd, string message);
+
+//Web Client->Server
+void client_unregister(int client_fd, string message);
+void client_upd_req(int client_fd, string message);
+void client_status_req(int client_fd, string message);
+
+void server_start() {
+	//Client->Server
+	//server_commands[DISCONNECT_REQUEST] = client_exit;
+	//server_commands[FORCE_DISCONNECT] = client_exit;
+	
+	//TODO server sends disconnect request/force disconnect, recieves disconnect when completed by client
+	
+	server_commands[DISCONNECT] = client_exit;
+	server_commands[TEST] = client_test;
+	server_commands[REGISTER] = client_register;
+	server_commands[CONNECT] = client_connect;
+	server_commands[STATUS] = client_status;
+	
+	//Web Client->Server
+	server_commands[UNREGISTER] = client_unregister;
+	server_commands[UPDATE_REQUEST] = client_upd_req;
+	server_commands[STATUS_REQUEST] = client_status_req;
+	
+	loadFile(DATA_FILE);
+	
+	//TODO print server IP on startup
+	
+	sockfd = socket(AF_INET, SOCK_STREAM, 0);
+	
+	if (sockfd == -1) {
+		cerr << "Failure to create server socket." << endl;
 		return;
 	}
-
-	if (setsockopt(av->server, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))){
-		// Handle Exception
-		pthread_mutex_lock( &print_mutex );
-		std::cout << "Error setting socket options" << std::endl;
-		pthread_mutex_unlock( &print_mutex );
+	
+	struct sockaddr_in hints;
+	
+	hints.sin_family = AF_INET;
+	hints.sin_addr.s_addr = INADDR_ANY;
+	hints.sin_port = htons(PORT);
+	
+	if (bind(sockfd, (struct sockaddr*) &hints, sizeof(hints)) == -1) {
+		cerr << "Could not assign a name to the server socket." << endl;
 		return;
 	}
-
-	av->soc_address.sin_family = AF_INET;
-	av->soc_address.sin_addr.s_addr = INADDR_ANY;
-	av->soc_address.sin_port = htons( PORT );
-
-	if (bind(av->server, (struct sockaddr *)&av->soc_address, av->address_length)<0) {
-		// Handle Exception
-		pthread_mutex_lock( &print_mutex );
-		std::cout << "Error binding port" << std::endl;
-		pthread_mutex_unlock( &print_mutex );
+	
+	if (listen(sockfd, LISTEN_QUEUE_SIZE) == -1) {
+		cerr << "Failed to listen for connections on port " << PORT << "." << endl;
+		return;
+	}
+	
+	/*
+    pid_t pid = fork();
+    
+    if (pid == 0) {
+        accept_devices((void*) &hints);
+		return;//exit after accept devices loop exits
+    }
+	*/
+	pthread_t acc_dev;//create accept devices thread so the server can still send data concurrently
+	
+	int err = pthread_create(&acc_dev, NULL, accept_devices, (void*) &hints);
+	
+	if (err != 0) {
+		cerr << "Failed to create \"acc_dev\" thread." << endl;
 		return;
 	}
 }
 
-void* listen(void* rl){
-	struct Args *l = (struct Args*) rl;
-	if (listen(l->server, 3) < 0) {
-		// Handle Exception
-		pthread_mutex_lock( &print_mutex );
-		std::cout << "Error listening" << std::endl;
-		pthread_mutex_unlock( &print_mutex );
+//BEGIN GETTERS
 
-		pthread_exit(0);
-	}
-	char buffer[1024] = {0};
-
-	while(!ext){
-		while(!auth){
-
-			if ((l->devices[l->device_num] = accept(l->server, (struct sockaddr *)&l->soc_address, (socklen_t*)&l->address_length))<0) {
-				// Handle Exception
-				pthread_mutex_lock( &print_mutex );
-				std::cout << "Error accepting connection" << std::endl;
-				pthread_mutex_unlock( &print_mutex );
-				pthread_exit(0);
-			}
-
-//			pthread_mutex_lock( &recv_mutex );
-			int valread = recv(l->devices[l->device_num], buffer, 1024, 0);
-//			pthread_mutex_unlock( &recv_mutex );
-
-			if(std::string(buffer) == "L000") {
-				auth = true;
-				printf("%s: Connect\n",buffer );
-			}
-			else {
-				std::string msg = "Authentication Failure";
-				printf("%s: %s\n",buffer, msg.c_str());
-//				pthread_mutex_lock( &recv_mutex );
-				send(l->devices[l->device_num], msg.c_str(), msg.length(), 0);
-//				pthread_mutex_unlock( &recv_mutex );
-			}
-		}
-		auth = false;
-
-//		pthread_mutex_lock( &recv_mutex );
-		send(l->devices[l->device_num], std::to_string(l->device_num).c_str() , strlen(std::to_string(l->device_num).c_str()) , 0 );
-		// TODO: Add device to the device array at the next available location
-//		pthread_mutex_unlock( &recv_mutex );
-		l->device_num = l->device_num + 1;
-	}
-	pthread_exit(0);
+int server_connections() {
+	pthread_mutex_lock(&mtx);
+	int size = by_ip.size();
+	pthread_mutex_unlock(&mtx);
+	
+	return size;
 }
 
-void* read(void* rdn){
-	struct Args *vi = (struct Args*) rdn;
-	int target = vi->target_dev;
-
-	while(!ext){
-		char buf[2048] = {0};
-		if(vi->devices[target] > 0){
-#ifdef DEBUG
-			pthread_mutex_lock( &print_mutex );
-			std::cout << "[Device " << std::to_string(target) << "] " << "There is a device" << std::endl;
-			pthread_mutex_unlock( &print_mutex );
-#endif
-//			pthread_mutex_lock( &recv_mutex );
-			int val = recv(vi->devices[target], buf, 2048, 0);
-//			pthread_mutex_unlock( &recv_mutex );
-#ifdef DEBUG
-			pthread_mutex_lock( &print_mutex );
-			std::cout << "[Device " << std::to_string(target) << "] " << std::string(buf) << std::endl;
-			pthread_mutex_unlock( &print_mutex );
-#endif
-			if(std::string(buf) == "L000: Disconnect"){
-				pthread_mutex_lock( &print_mutex );
-				std::cout << std::string(buf) << std::endl;
-				pthread_mutex_unlock( &print_mutex );
-				vi->device_num = vi->device_num - 1;
-				vi->devices[target] = -1;
-			}
-		}
-#ifdef DEBUG
-		else{
-			pthread_mutex_lock( &print_mutex );
-			std::cout << "[Device " << std::to_string(target) << "] " << "No devices connected" << std::endl;
-			pthread_mutex_unlock( &print_mutex );
-		}
-#endif
-
-		usleep(READ_WAIT_PERIOD);
+int client_fd_by_serial(string serial) {
+	pthread_mutex_lock(&mtx);
+	if (ser_to_fd.count(serial) == 0) {
+		return -1;
 	}
-	pthread_exit(0);
+	
+	int fd = ser_to_fd[serial];
+	pthread_mutex_unlock(&mtx);
+	
+	return fd;
 }
 
-void* monitor(void* vv){
-#ifdef DEBUG
-	pthread_mutex_lock( &print_mutex );
-	std::cout << "Start Monitoring" << std::endl;
-	pthread_mutex_unlock( &print_mutex );
-#endif
-	struct Args *v = (struct Args*) vv;
-
-#ifdef DEBUG
-	pthread_mutex_lock( &print_mutex );
-	std::cout << "Monitor Devices: " << std::to_string(v->device_num) << std::endl;
-	pthread_mutex_unlock( &print_mutex );
-#endif
-
-	pthread_t device_0, device_1, device_2, device_3, device_4, device_5;
-
-	int rc;
-	// TODO: Add dev number to struct and change it every time create new thread to read
-	v->target_dev = 0;
-	rc = pthread_create(&device_0, NULL, read, (void*)v);
-	usleep(100);
-	v->target_dev = 1;
-	rc = pthread_create(&device_1, NULL, read, (void*)(v));
-	usleep(100);
-	v->target_dev = 2;
-	rc = pthread_create(&device_2, NULL, read, (void*)(v));
-	usleep(100);
-	v->target_dev = 3;
-	rc = pthread_create(&device_3, NULL, read, (void*)(v));
-	usleep(100);
-	v->target_dev = 4;
-	rc = pthread_create(&device_4, NULL, read, (void*)(v));
-	usleep(100);
-	v->target_dev = 5;
-	rc = pthread_create(&device_5, NULL, read, (void*)(v));
-	usleep(100);
-
-	rc = pthread_join(device_0, NULL);
-	rc = pthread_join(device_1, NULL);
-	rc = pthread_join(device_2, NULL);
-	rc = pthread_join(device_3, NULL);
-	rc = pthread_join(device_4, NULL);
-	rc = pthread_join(device_5, NULL);
-
-	pthread_exit(0);
+int client_fd_by_ip(string ip) {
+	pthread_mutex_lock(&mtx);
+	if (by_ip.count(ip) == 0) {
+		return -1;
+	}
+	
+	int fd = by_ip[ip];
+	pthread_mutex_unlock(&mtx);
+	
+	return fd;
 }
 
-int main(){
+string client_serial_by_fd(int fd) {
+	pthread_mutex_lock(&mtx);
+	if (fd_to_ser.count(fd) == 0) {
+		return "";
+	}
+	
+	string serial = fd_to_ser[fd];
+	pthread_mutex_unlock(&mtx);
+	
+	return serial;
+}
 
-	struct Args *a = new Args();
+string client_ip_by_fd(int fd) {
+	struct sockaddr_in addr;
+	int a_size = sizeof(addr);
+	
+	if (getpeername(fd, (sockaddr*) &addr, (socklen_t*) &a_size)) {
+		return "";//empty string
+	}
+	
+	return inet_ntoa(addr.sin_addr);
+}
 
-	setup(a);
+//END GETTERS
 
-	int rc;
+void server_send(int c_fd, string msg) {
+	if (!running) {
+		cerr << "Server attempted to send to client " << c_fd << " while not running." << endl;
+		return;
+	}
+	
+	if (msg.length() == 0) {
+		cerr << "Attempted to send empty message to client " << c_fd << "." << endl;
+		return;
+	}
+	
+	/*
+	This allows for a message of MESSAGE_SIZE - 1 (for null term) to be sent each time, meaning more bytes are sent,
+	but there is no possibility that calling send() twice in rapid succession will concatenate messages in the buffer.
+	*/
+	
+	char* a = new char[MESSAGE_SIZE + 1];
+	memcpy(a, msg.c_str(), MESSAGE_SIZE);
+	a[MESSAGE_SIZE] = 0;
+    
+    cout << "[->" << c_fd << "]" << msg << endl;
+    
+	if (send(c_fd, a, MESSAGE_SIZE, 0) == -1) {
+		cerr << "Failed to send data to client " << c_fd << "." << endl;
+		return;
+	}
+}
 
-	pthread_t tlisten, tmonitor;
-	rc = pthread_create(&tlisten, NULL, listen, (void *) a);
-	// TODO: Check if rc is proper return code
-	rc = pthread_create(&tmonitor, NULL, monitor, (void *) a);
-	// TODO: Check if rc is proper return code
+void* accept_devices(void* c_addr) {
+	sockaddr_in hints = *(sockaddr_in*) c_addr;
+	
+	running = true;
+	
+	while(true) {
+		int h_size = sizeof(hints);
+		int c_fd = accept(sockfd, (struct sockaddr*) &hints, (socklen_t*) &h_size);
+	
+		if (c_fd == -1) {
+			cerr << "Failed to establish a connection with a client." << endl;
+			pthread_exit(0);
+		}
+	
+		string ip = inet_ntoa(hints.sin_addr);
+		
+		pthread_mutex_lock(&mtx);
+		cout << "Client " << c_fd << " connected from IP: " << ip << endl;
+		
+		by_ip.insert(pair<string, int>(ip, c_fd));
+		pthread_mutex_unlock(&mtx);
+        
+		/*
+        pid_t pid = fork();
+        
+        if (pid == 0) {//child
+            read_client((void*) &c_fd);
+			return;//exit after read loop exits
+        }//parent continues
+		*/
+		
+		pthread_t dev_rc;
+		
+		int err = pthread_create(&dev_rc, NULL, read_client, (void*) &c_fd);
+	
+		if (err != 0) {
+			cerr << "Failed to create \"dev_rc\" thread for device at IP: " << ip << endl;
+			pthread_exit(0);
+		}
+	}
+	return NULL;
+}
 
-	rc = pthread_join(tlisten, NULL);
-	rc = pthread_join(tmonitor, NULL);
-	// TODO: Check rc values
-	//std::thread tlisten (listen, (void*) a);
-	//std::thread tmonitor (monitor);
+void* read_client(void* c_fd_p) {
+	int c_fd = *(int*) c_fd_p;
+	
+	char msg[MESSAGE_SIZE];
+	
+	while(true) {
+		memset(&msg, 0, MESSAGE_SIZE);//clear the buffer
+		
+		if (recv(c_fd, msg, MESSAGE_SIZE, 0) < 1) {
+            cerr << "Client " << c_fd << " dropped the connection unexpectedly." << endl;
+			client_exit(c_fd, "");
+			return NULL;
+		}
+		
+		string s_msg(msg);
+		
+		if (s_msg.front() != '{' || s_msg.back() != '}') {
+            cerr << "Client " << c_fd << " sent a non-JSON (invalid) message to the server." << endl;
+			client_exit(c_fd, "");
+			return NULL;//not JSON
+		}
+		
+		int cmd = Json(s_msg).cmd;//grab command type from JSON
+        
+        if (server_commands.count(cmd) == 0) {
+            cerr << "Client " << c_fd << " issued unknown command \"" << cmd << "\"." << endl;
+            client_exit(c_fd, "");
+            return NULL;
+        }
+		
+		pthread_mutex_lock(&mtx);	
+		map<int, cmd_func*>::iterator it = server_commands.find(cmd);
+		pthread_mutex_unlock(&mtx);
+		
+		cout << "[CLIENT " << c_fd << "]: " << s_msg << endl;
+		
+		it->second(c_fd, s_msg);//respond accordingly
+	}
+	return NULL;
+}
 
-	//tlisten.join();
-	//tmonitor.join();
+//REQUESTS:
 
-	return 0;
+void send_status_req(int c_fd, Device* d) {
+	/*
+	Json* json = new Json(STATUS_REQUEST, "0", d->getSerial());//TODO uuid
+	
+	server_send(c_fd, json->jsonify());//TO DEVICE
+	*/
+	
+	server_send(c_fd, to_string(STATUS_REQUEST) + "|");
+	
+	//delete(json);
+}
+
+void send_status(int c_fd, Device* d, string group_name) {
+	Json* json = new Json(STATUS, uuid_gen(), d->getSerial());
+				
+	json->data["name"] = d->getName();
+	json->data["group_name"] = group_name;
+	json->data["ip"] = d->getIP();
+	json->data["level"] = "\"" + to_string(d->getLightLevel()) + "\"";
+	//TODO add f_vers, h_vers
+			
+    string data = json->jsonify();
+            
+    //cout << data << endl;
+            
+	server_send(c_fd, data);
+				
+	delete(json);
+}
+
+//RESPONSES:
+//CLIENT->SERVER
+void client_exit(int c_fd, string msg) {
+	//Json* json = new Json(msg);
+	
+	string ip = client_ip_by_fd(c_fd);
+	
+	if (ip.compare("") == 0) {
+		cerr << "Attempted to disconnect invalid client " << c_fd << "." << endl;
+		//delete(json);
+		return;
+	}
+	
+    /*
+	if (reg_devs.count(json->serial) == 0) {
+		cerr << "Attempted to exit unregistered device " << c_fd << "." << endl;
+		delete(json);
+		return;
+	}
+	*/
+	
+	string serial = client_serial_by_fd(c_fd);
+	
+	fd_to_ser.erase(c_fd);
+	ser_to_fd.erase(serial);
+	
+	if (changed_fds.count(c_fd) > 0) {//the fds never changed
+		int fd = changed_fds[c_fd];
+		fd_to_ser.insert(pair<int, string>(fd, serial));
+		ser_to_fd.insert(pair<string, int>(serial, fd));
+		changed_fds.erase(c_fd);//device reconnected to a different fd
+	} else {
+		by_ip.erase(ip);//if ip exists in the map
+	}
+	
+	cout << "Client " << c_fd << " (" << ip << ") disconnected." << endl;
+    
+    close(c_fd);
+}
+
+void client_test(int c_fd, string msg) {
+	/*
+	Json* json = new Json(msg);
+	
+	//the device does not have to be registered, as this is a harmless debugging tool
+	
+	string succ = json->data["message"];
+	
+	server_send(c_fd, succ);//TO DEVICE
+	*/
+	
+	string succ = "SUCCESS";
+	
+	server_send(c_fd, succ);
+	
+	//delete(json);
+}
+
+void client_register(int c_fd, string msg) {
+	Json* json = new Json(msg);
+	
+	if (json->data["reg_key"].compare(REG_KEY) != 0) {
+		server_send(c_fd, to_string(FORCE_DISCONNECT));
+		
+		cerr << "Device " << c_fd << " attempted to register with improper reg key." << endl;
+		delete(json);
+		return;
+	}
+	
+	if (reg_devs.count(json->serial) > 0) {
+		client_connect(c_fd, msg);
+		
+		cerr << "Device " << c_fd << " attempted to register multiple times." << endl;
+		delete(json);
+		return;
+	}
+	
+	/*
+	string d_name = json->data["name"];
+	
+	if (!isValidName(d_name)) {
+		cerr << "Invalid device name: " << d_name << endl;
+		delete(json);
+		return;
+	}
+	*/
+    
+    string devip = client_ip_by_fd(c_fd);
+    
+    //cout << devip << " reg at " << json->serial << endl;
+	
+	Device* d = new Device(devip, "TEST_DEVICE_1", json->serial);//NO NAME, SET BY WEB CLIENT
+	
+	//d->setLightLevel(atoi(json->data["level"].c_str()));
+	d->set_f_vers(json->data["firmware_version"]);
+	d->set_h_vers(json->data["hardware_version"]);
+	
+	/*
+	string g_name = "all";//TODO every device will be stored in the all group for now
+	
+	if (!isValidGroupName(g_name)) {
+		cerr << "Invalid group name: " << g_name << endl;
+		delete(json);
+		delete(d);
+		return;
+	}
+	
+	DeviceGroup* g;
+
+	if (grps_n.count(g_name) == 0) {//no group by that name exists
+		g = new DeviceGroup(g_name);
+	} else {
+		DeviceGroup g_perm = byGroupName(g_name);
+		g = &g_perm;
+	}
+	*/
+	
+	DeviceGroup* g = new DeviceGroup("all");//TODO more device groups than just 'all'
+	
+	g->addDevice(d);
+	
+	client_connect(c_fd, msg);
+	
+	delete(json);
+	
+	//reg_devs.insert(json->serial);
+	
+	//send_status_req(c_fd, d);
+	
+	//delete(d);
+}
+
+void client_connect(int c_fd, string msg) {
+	Json* json = new Json(msg);
+	
+	string serial = json->serial;
+	
+	/*
+	int prevfd = client_fd_by_serial(serial);
+	
+	if (prevfd != -1) {
+		cout << "FD: " << prevfd << endl;
+		client_exit(prevfd, "");//close old file descriptor
+	}
+	*/
+	
+	//test all connections to make sure none have dropped unexpectedly
+	for (map<int, string>::iterator it = fd_to_ser.begin(); it != fd_to_ser.end(); ++it) {
+		int fd = it->first;
+		string testser = it->second;
+		
+		if (testser.compare(serial) == 0) {//same serial, probably reset connection but it hasn't disconnected+exited yet
+			changed_fds.insert(pair<int, int>(fd, c_fd));
+		}
+		
+		server_send(fd, to_string(TEST));
+		
+	}
+	
+	Device* d = bySerial(serial);
+	
+	if (d == NULL) {
+		server_send(c_fd, to_string(REG_REQUEST));
+		//cerr << "Device " << c_fd << " attempted to connect without registration." << endl;
+		delete(json);
+		return;
+	}
+	
+	pthread_mutex_lock(&mtx);
+    fd_to_ser.insert(pair<int, string>(c_fd, serial));
+    ser_to_fd.insert(pair<string, int>(serial, c_fd));
+	reg_devs.insert(serial);
+	pthread_mutex_unlock(&mtx);
+	
+	/*
+	string d_name = json->data["name"];
+	
+	if (!isValidName(d_name)) {
+		cerr << "Invalid device name: " << d_name << endl;
+		delete(json);
+		return;
+	}
+	*/
+	
+	send_status_req(c_fd, d);
+	
+	delete(json);
+}
+
+void client_status(int c_fd, string msg) {
+	Json* json = new Json(msg);
+	
+	string serial = json->serial;
+	
+	if (reg_devs.count(serial) == 0) {
+		cerr << "Attempted to update the status of unregistered device" << c_fd << "." << endl;
+		delete(json);
+		return;
+	}
+	
+	//TODO change group if it's different
+	
+	Device* d = bySerial(serial);
+	
+	//d.setName(json->data["name"]);
+	d->setLightLevel(atoi(json->data["level"].c_str()));
+	//d.set_f_vers(json->data["firmware_version"]);
+	//d.set_h_vers(json->data["hardware_version"]);
+	
+	for (set<int>::iterator it = waiting_on_status.begin(); it != waiting_on_status.end(); ++it) {
+		int fd = *it;
+		send_status(fd, d, "all");//TODO group name
+	}
+	
+	waiting_on_status.clear();
+	
+	updateFile(DATA_FILE);
+	
+	delete(json);
+}
+
+//WEB CLIENT->SERVER
+void client_unregister(int c_fd, string msg) {
+	Json* json = new Json(msg);
+	
+	string serial = json->serial;
+	
+	if (reg_devs.count(serial) == 0) {
+		cerr << "Unregistered client " << c_fd << " attempted to unregister a device. " << endl;
+		delete(json);
+		return;
+	}
+	
+	/*
+	string d_name = json->data["name"];
+	
+	if (!isValidName(d_name)) {
+		cerr << "Invalid device name: " << d_name << endl;
+		delete(json);
+		return;
+	}
+	
+	Device* d = new Device(client_ip_by_fd(c_fd), d_name, json->serial);
+	*/
+	Device* d = bySerial(serial);
+	
+	string g_name = "all";//TODO the only group currently is all
+	
+	if (!isValidGroupName(g_name)) {
+		cerr << "Invalid group name: " << g_name << endl;
+		delete(json);
+		//delete(d);
+		return;
+	}
+	
+	if (grps_n.count(g_name) == 0) {//no group by that name exists
+		cerr << "Attempted to unregister a device (" << c_fd << ") from an invalid group." << endl;
+		delete(json);
+		//delete(d);
+		return;
+	}
+	
+	DeviceGroup g = byGroupName(g_name);
+	
+	g.removeDevice(d);
+	
+	reg_devs.erase(serial);
+	
+	delete(json);
+	//delete(d);
+}
+
+void client_upd_req(int c_fd, string msg) {
+	Json* rcv_json = new Json(msg);
+	
+	
+	string d_name = rcv_json->data["name"];
+	
+    /*
+	if (!isValidName(d_name)) {
+		cerr << "Invalid device name: " << d_name << endl;
+		delete(rcv_json);
+		return;
+	}
+    */
+	
+	
+	string serial = rcv_json->serial;
+	
+	/*
+	if (reg_devs.count(serial) == 0) {
+		cerr << "Unregistered client " << c_fd << " attempted to update a device." << endl;
+		delete(rcv_json);
+		return;
+	}
+	*/
+	
+	//TODO if the message tells me to disconnect a client, send a disconnect request/force disconnect after timeout
+	
+	//Device* d = new Device(client_ip_by_fd(c_fd), "TODO", "abc123");
+    
+    Device* d = bySerial(serial);
+	
+	if (d == NULL || reg_devs.count(serial) == 0) {
+		cerr << "Client requested an update to the status of an unknown or disconnected device: " << serial << endl;
+		
+		//return unknown device status dummy message to web client
+		Json* snd_json = new Json(STATUS, uuid_gen(), serial);
+		snd_json->data["level"] = "0";
+		snd_json->data["name"] = "UNKNOWN";
+		
+		server_send(c_fd, snd_json->jsonify());
+		
+		delete(rcv_json);
+		delete(snd_json);
+		return;
+	}
+	
+	Json* snd_json = new Json(UPDATE, uuid_gen(), serial);
+	
+	snd_json->data["level"] = rcv_json->data["level"];
+	
+	//server_send(client_fd_by_serial(serial), snd_json->jsonify());//TO DEVICE
+	int level = atoi(rcv_json->data["level"].c_str());
+    
+    //pthread_mutex_lock(&mtx);
+    //d->setLightLevel(level);
+    //pthread_mutex_unlock(&mtx);
+    
+    //cout << d_name << ":" << serial << ":" << level << endl;
+    
+	string type = "OFF";
+	if (level == 10) {
+		type = "ON";
+	}
+    
+    int devfd = client_fd_by_serial(serial);
+    
+    //cout << devfd << ":" << serial << ":" << type << endl;
+    
+    pthread_mutex_lock(&mtx);
+	server_send(devfd, to_string(UPDATE) + "|" + type);
+	
+	waiting_on_status.insert(c_fd);
+    pthread_mutex_unlock(&mtx);
+	
+	updateFile(DATA_FILE);
+	
+	delete(rcv_json);
+	delete(snd_json);
+}
+
+void client_status_req(int c_fd, string msg) {
+	/*
+	Json* rcv_json = new Json(msg);
+	
+	if (reg_devs.count(rcv_json->serial) == 0) {
+		cerr << "Unregistered client " << c_fd << " requested the status of the system." << endl;
+		delete(rcv_json);
+		return;
+	}
+	*/
+    
+    //cout << "STATUS REQ" << endl;
+	
+	for (map<string, DeviceGroup*>::iterator it = grps_n.begin(); it != grps_n.end(); ++it) {
+		string g_name = it->first;
+		DeviceGroup* g = it->second;
+        
+        //cout << "GRP" << endl;
+		
+		list<Device*> devs = g->getDevices();
+		
+		//send a status command for each device
+		for (list<Device*>::iterator dit = devs.begin(); dit != devs.end(); ++dit) {
+			Device* d = *dit;
+            
+            //cout << "DEV" << endl;
+			
+			send_status(c_fd, d, g_name);
+		}
+	}
+	
+	//delete(rcv_json);
+}
+
+string uuid_gen() {
+    return "TODO";
 }

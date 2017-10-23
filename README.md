@@ -4,8 +4,28 @@ This project aims to create a low cost home automation illumination device that 
 
 <h3>Compiling</h3>
 
-To compile the entire project go the the top directory ```Lux/``` and type ```make```. This will compile everything and store it in the ```Lux/bin/``` directory.
+The project is currently compiled by running the makefile in the tests/server folder.
+
+make server_test
 
 <h3>Execution</h3>
 
-To execute a program from the top-most directory, type ```./bin/*name_of_program*``` and hit enter.
+To execute the program:
+
+*plug the Lux device into a light bulb socket and plug a light bulb into the female socket
+
+*start the Lux device and connect to the ESP_XXXX website via localhost:8080
+
+*provide the website with the IP address of your WiFi network
+
+*start/connect a controller device (PC/Phone) to your WiFi
+
+*compile and run the server_test.exe in the tests/server folder as instructed above
+
+*push the RED button on the Lux device
+
+*connect to the website at localhost:5000
+
+*sign in on the website with username 'admin@admin.com' and password 'admin'
+
+*hit the submit button to turn the light on, sign in and hit it again to turn the light off
