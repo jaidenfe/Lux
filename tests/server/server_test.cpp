@@ -10,7 +10,7 @@ void get_client_ip(const int c_fd, const string msg) {
 int main(int argc, char* argv[]) {
 	//server_commands["getip"] = get_client_ip;//Any Client->Server
 	
-	loadFile("../devman/devices.dat");
+	//loadFile("../devman/devices.dat");
 	
 	cout << "Starting server..." << endl;
 	
@@ -24,6 +24,7 @@ int main(int argc, char* argv[]) {
 	
 	cout << "Connection found." << endl;
 	
+	/*
 	while(true) {
 		string s;
 		cin >> s;
@@ -40,6 +41,7 @@ int main(int argc, char* argv[]) {
 			break;
 		}
 	}
+	*/
 	
 	while(true) {
 		//do nothing

@@ -16,7 +16,7 @@
     <!-- <link href="{{url_for('static', filename = 'jumbotron.css') }}" rel="stylesheet"> -->
   </head>
 
-  <body onload = "first_time_load()">
+  <body onload = "loading_page()">
 
     <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
       <a class="navbar-brand" href="index.html">LUX</a>
@@ -30,11 +30,12 @@
             <a class="nav-link" href="index.html">Home <span class="sr-only">(current)</span></a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="Luxabout.html">About</a>
+            <a class="nav-link" href="about.html">About</a>
           </li>
-          <li class="nav-item">
+          <!--<li class="nav-item">
             <a class="nav-link" href="LuxLogin.html">Sign-up/Login</a>
           </li>
+          -->
 		  <!--
           <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle" href="http://example.com" id="dropdown01" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Dropdown</a>
@@ -45,9 +46,11 @@
             </div>
           </li>
 		  -->
+          <!--
 		  <li class = "nav-item" style = "float:right">
 			<a class = "nav-link" href = "Luxcontact.html"> Contact </a> 
 		  </li>
+          -->
         </ul>
       </div>
     </nav>
@@ -60,37 +63,95 @@
 	
       <div class="starter-template">
 		<br> <br> <br>
-        <h1>Your registered devices</h1>
+        <h1>Your registered devices:</h1>
 		
 		<div id = 'user_devices'>
 		
 		</div>
 		
 		<!-- <button class = "btn" onclick = "addDevice"> Add new device </button> -->
-		
+		</div>
+	  <hr>
+
+      <footer>
+        <p>CSE 442 - Fall 2017&copy; </p>
+      </footer>	
+    </div><!-- /.container -->
 		<script>
-		var request_for_page = {"cmd":"status_req"};
-		
-		function first_time_load() {
-			sendRequest(request_for_page);
+		var request_for_page = {};
+        
+		function loading_page() {
+			sendRequest(true, request_for_page, "/status_req");
 		}
-		
-		function sendRequest(data) {
+
+		function sendRequest(upd, data, type) {
 			var xhttp = new XMLHttpRequest();
-			xhttp.open("POST", "/request", true);
+			xhttp.open("POST", type, true);
 			xhttp.setRequestHeader("Content-type", "application/json");
 			xhttp.onreadystatechange = function() {
 				if (this.readyState == 4 && this.status == 200) {
-					if (checkFailure) {
-						break;
+					if (upd) {
+						onPageLoad(this);	
 					}
-					onPageLoad(this);
 				}
 			}
 			var param = JSON.stringify(data);
 			xhttp.send(param);
 		}
+        
+		function onPageLoad(xhttp) {
+			var mylist = "";
+            var resp = xhttp.responseText;
+            
+			myDevices = JSON.parse(resp);
+			mylist += "<table id = 'myLuxDevices'>";
+			var temp = [];
+			for (x in myDevices) {
+				
+				temp.push(x);
+				
+				var deviceID = myDevices[x].serial;
+				var deviceName = myDevices[x].data.name;
+				var deviceState = myDevices[x].data.level;
+				var devicePictureState = checkOnOrOffState(deviceState);
+				mylist += "<div id=" + deviceID + " border-style='solid' border-radius='5px' width='200px' height='300px'>" + devicePictureState + "<p text-align = 'center'>" + deviceName + "</p> <br> <p><button type=\"button\" class=\"btn\" onclick=\"onState(" + deviceName + ', ' + deviceID + ")\"> ON </button> - <button type=\"button\" class=\"btn\" onclick=\"offState(" + deviceName + ', ' + deviceID + ")\"> OFF </button></p></div>";
+				 
+			}
+			mylist += "</table>";
+			
+			document.getElementById("user_devices").innerHTML = mylist;
+            
+			//var count = 0;
+			for (bt in temp){
+				document.getElementsByClassName("btn")[bt].onclick = function(){offState(myDevices[bt].name, myDevices[bt].serial);};
+				//count+=1;
+			}
+		}
 		
+		function checkOnOrOffState(deviceState) {
+			if (deviceState == 10) {
+				var image = "<img src = '{{url_for('static', filename = 'images/lighton.jpg') }}' width = '122px' height = '180px' display = 'block' margin = 'auto'>";
+				return image;
+			}
+			else if (deviceState == 0) {
+				var image = "<img src = '{{url_for('static', filename = 'images/lightoff.jpg') }}' width = '122px' height = '180px' display = 'block' margin = 'auto'>";
+				return image;
+			}
+		}
+		
+		function onState(deviceName, deviceID) {
+			var data = {"cmd":"4", "uuid":"0", "serial": deviceID, "data":{"name": deviceName, "level": 10}};
+            alert("ON");
+			sendRequest(true, data, "/update_req");
+		}
+		
+		function offState(deviceName, deviceID) {
+			var data = {"cmd":"4", "uuid":"0", "serial": deviceID, "data":{"name": deviceName, "level": 0}};
+            alert("OFF");
+			sendRequest(true, data, "/update_req");
+		}
+        
+        /*
 		function checkFailure(xhttp) {
 			if (xhttp.responseText == "{'table': 'failed'}") {
 				// alert telling user the table of devices failed to load properly
@@ -117,40 +178,7 @@
 				return true;
 			}
 		}
-		
-		function onPageLoad(xhttp) {
-			myDevices = JSON.parse(xhttp.responseText);
-			mylist += "<table id = 'myLuxDevices'>";
-			for (x in myDevices) {
-				var deviceID = myDevices[x].serial;
-				var deviceState = myDevices[x].level;
-				var devicePictureState = checkOn/OffState(deviceState);
-				mylist += "<div id=" + deviceID + " border-style = 'solid' border-radius = '5px' width = '200px' height = '300px'>" + devicePictureState + "<p text-align = 'center'>" + deviceID + "</p> <br> <p><button class = 'btn' onclick = 'onState(" + deviceID + ")'> On </button> <button class = 'btn' onclick = 'offState(" + deviceID + ")'> Off </button></div>"
-			}
-			mylist += "</table>";
-			document.getElementById("user_devices").innerHTML = mylist;
-		}
-		
-		function checkOn/OffState(deviceState) {
-			if (deviceState == 10) {
-				var image = "<img src = '{{url_for('static', filename = 'images/lighton.jpg') }}' width = '122px' height = '180px' display = 'block' margin = 'auto'>";
-				return image;
-			}
-			else if (deviceState == 0) {
-				var image = "<img src = '{{url_for('static', filename = 'images/lightoff.jpg') }}' width = '122px' height = '180px' display = 'block' margin = 'auto'>";
-				return image;
-			}
-		}
-		
-		function onState(deviceID) {
-			var data = {"cmd":"update_req","data":{"serial": deviceID, "level": 10}};
-			sendRequest(data);
-		}
-		
-		function offState(deviceID) {
-			var data = {"cmd":"update_req","data":{"serial": deviceID, "level": 0}};
-			sendRequest(data);
-		}
+		*/
 		
 		/*
 		function changeDeviceName(deviceNumber) {
@@ -190,20 +218,13 @@
 		*/
 		</script>
 		
-	  </div>
-	  <hr>
-
-      <footer>
-        <p>CSE 442 - Fall 2017&copy; </p>
-      </footer>	
-    </div><!-- /.container -->
 
 
     <!-- Bootstrap core JavaScript
     ================================================== -->
     <!-- Placed at the end of the document so the pages load faster -->
     <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
-    <script>window.jQuery || document.write('<script src="../../../../assets/js/vendor/jquery.min.js"><\/script>')</script>
+    <script>window.jQuery || document.write('<script src="../../../../assets/js/vendor/jquery.min.js"><\//script>')</script>
     <script src="{{url_for('static', filename = 'bootstrap-4.0.0-beta/assets/js/vendor/popper.min.js') }}"></script>
     <script src="{{url_for('static', filename = 'bootstrap-4.0.0-beta/dist/js/bootstrap.min.js') }}"></script>
     <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
