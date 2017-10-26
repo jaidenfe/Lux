@@ -41,7 +41,7 @@
 
 // ESP Access Point Variables
 const char* AP_ssid = "ESPSetup";
-const char* AP_password = "ESP8266";
+const char* AP_password = "ESP8266p";
 
 // Network Connection Variables
 String LAN_ssid = "";
