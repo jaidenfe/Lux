@@ -45,13 +45,13 @@ def status_req():
         command = STATUS_REQUEST
         msg = '{"cmd":' + str(command) + ',"uuid":"0","serial":"0","data":{}}'
         send(msg)#status_req
-        
+
         resp = '{"1" :' + read().decode('utf-8') + "}"#TODO read and return combined JSON once end delimiter/message is found (not yet implemented by server)
-        
+
         print(resp)
     #render_template('dashboard.html')
     return resp
-        
+
 
 @app.route('/update_req', methods=['POST'])
 def update_req():
@@ -62,15 +62,15 @@ def update_req():
         serial = rcvd["serial"]
         name = rcvd["data"]["name"]
         level = rcvd["data"]["level"]
-        
+
         msg = '{"cmd":' + str(command) + ',"uuid":"' + uuid + '","serial":"' + serial + '","data":{"name":"' + name + '","level":"' + str(level) + '"}}'
         send(msg)
-        
+
         resp = read().decode('utf-8')
     return resp#render_template('dashboard.html')
 
 @app.route('/unregister', methods=['POST'])
-def unregister():
+def unregister():#TODO
     rcvd = request.get_json()
     if (rcvd != None):
         command = UNREGISTER
@@ -96,10 +96,10 @@ def disconnect():
     global connected, sock
     if (not connected):
         return#not connected, don't try to d/c
-    
+
     msg = '{"cmd":"7","uuid":"0","serial":"0","data":{}}'
     send(msg)#DISCONNECT -> client_exit();
-    
+
     sock.close()
     sock = None
     connected = False
@@ -118,4 +118,4 @@ def read():
     #dict = json.loads(msg.decode("utf-8"))
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host='0.0.0.0')

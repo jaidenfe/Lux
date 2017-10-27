@@ -24,7 +24,7 @@ int main(int argc, char* argv[]) {
 	
 	cout << "Connection found." << endl;
 	
-	/*
+	
 	while(true) {
 		string s;
 		cin >> s;
@@ -41,7 +41,7 @@ int main(int argc, char* argv[]) {
 			break;
 		}
 	}
-	*/
+	
 	
 	while(true) {
 		//do nothing
