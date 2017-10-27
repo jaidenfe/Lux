@@ -29,3 +29,6 @@ To execute the program:
 *sign in on the website with username 'admin@admin.com' and password 'admin'
 
 *hit the submit button to turn the light on, sign in and hit it again to turn the light off
+
+<h3>Contributor</h3>
+Xuanyu Dong (Front End)
