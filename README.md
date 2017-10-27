@@ -30,5 +30,5 @@ To execute the program:
 
 *hit the submit button to turn the light on, sign in and hit it again to turn the light off
 
-<h3>Contributer</h3>
-*Xuanyu Dong (Front End)
+<h3>Contributor</h3>
+Xuanyu Dong (Front End)
