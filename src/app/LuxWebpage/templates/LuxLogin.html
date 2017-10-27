@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+	<title> Lux: Wireless Home Illumination </title>
+	<link rel = "shortcut icon" href = "{{url_for('static', filename = 'images/Lightbulb.ico') }}">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
+    
+	<!-- Bootstrap core CSS -->
+    <link href="{{url_for('static', filename = 'bootstrap-4.0.0-beta/dist/css/bootstrap.min.css') }}" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <!-- <link href="{{url_for('static', filename = 'signin.css') }}" rel="stylesheet"> -->
+	
+	<!--
+	Find out how to check for cookies
+	Check if the user has a cookie with a valid account
+	If so, redirect them to the verified page
+	
+	If the cookie is out-of-date and user signs-in, create new cookie
+	Have the user sign-in, and send a POST request to the backend for authentication
+	Once the user creates an account, send their data to the backend server using a POST request
+	
+	For first-time register:
+	If the email has already been linked to an account, throw an error
+	If password and confirmpassword are not the same, throw an error
+	
+	For returning user:
+	If password was incorrect, throw an error
+	If no account has that email, throw an error
+	
+	If successful in signing-in or by registering, send the user to the verified page
+	-->
+  </head>
+
+  <body>
+
+    <div class="container">
+		
+		<div id = "invalid_alert">
+		
+		</div>
+		
+      <form class="form-signin" method="post">
+        <h2 class="form-signin-heading">Please sign in</h2>
+        <label for="inputEmail" class="sr-only">Email address</label>
+        <input type="email" id="inputEmail" class="form-control" placeholder="Email address" required autofocus>
+        <label for="inputPassword" class="sr-only">Password</label>
+        <input type="password" id="inputPassword" class="form-control" placeholder="Password" required>
+        <!--
+		<div class="checkbox">
+          <label>
+            <input type="checkbox" value="remember-me"> Remember me
+          </label>
+        </div>
+		-->
+        <input class="btn btn-lg btn-primary btn-block" type="button" value = "Sign in" onclick = sendRequest()></button>
+      </form>
+	  
+	  <script>
+	  function sendRequest() {
+		var xhttp = new XMLHttpRequest();
+			  var user = document.getElementById('inputEmail').value;
+			  var password = document.getElementById('inputPassword').value;
+				var formData = {"id":user,"pass":password};
+				xhttp.open("POST", "/login", true);
+				xhttp.setRequestHeader("Content-type", "application/json");
+				xhttp.send(JSON.stringify(formData));
+				xhttp.onreadystatechange = function() {
+					if (this.readyState == 4 && this.status == 200){
+						if (this.responseText == "success"){
+							window.location.href = "dashboard.html";
+						}else{
+			// If the login info does not exist in our database
+			var invalidAlert = "<div class = 'alert alert-danger' role = 'alert'> <button type = 'button' class = 'close' data-dismiss = 'alert' aria-label = 'Close'> <span aria-hidden = 'true'>&times;</span> </button> Invalid. Check login information </div>";
+			document.getElementById("invalid_alert").innerHTML = invalidAlert;
+		}
+						//document.getElementById("demo-form").innerHTML = this.responseText
+					}
+				};
+	  }
+	  
+	  function onSignIn(xhttp) {
+		// Check to see if any errors occurred when trying to sign-in
+		if (xhttp.responseText == "success") {
+			// send the user to the verified page
+			window.location("dashboard.html");
+		}
+		else{
+			// If the login info does not exist in our database
+			var invalidAlert = "<div class = 'alert alert-danger' role = 'alert'> <button type = 'button' class = 'close' data-dismiss = 'alert' aria-label = 'Close'> <span aria-hidden = 'true'>&times;</span> </button> Invalid. Check login information </div>";
+			document.getElementById("invalid_alert").innerHTML = invalidAlert;
+		}
+	  }
+	  </script>
+	  <!--
+	  <script>
+	  function onRegister(xhttp) {
+		// Check to see if any errors occurred when trying to register a new account
+		if (xhttp.responseText == "") {
+			// alert that account was created and send the user to the verified page
+		}
+		else if (xhttp.responseText == "") {
+			// If the email input is already linked to an account
+		}
+	  }
+	  
+	  </script>
+	  
+	  <hr class = "my-4">
+	  <br>
+	  <form class = "form-register">
+		<h2 class = "form-signin-heading">If you don't have an account with us, please register</h2>
+		<label for = "inputEmail" class = "sr-only"> Email address </label>
+		<input type = "email" id = "inputEmail" class = "form-control" placeholder = "Email address" required autofocus>
+		<label for = "inputPassword" class = "sr-only"> Password </label>
+		<input type = "password" id = "inputPassword" class = "form-control" placeholder = "Password" required>
+		<label for = "confirmPassword" class = "sr-only"> Confirm Password </label>
+		<input type = "password" id = "confrimPassword" class = "form-control" placeholder = "Confirm Password" required>
+		<label for = "inputFirstName" class = "sr-only"> First Name </label>
+		<input type = "text" id = "inputFirstName" class = "form-control" placeholder = "First Name" required>
+		<label for = "inputLastName" class = "sr-only"> Last Name </label>
+		<input type = "text" id = "inputLastName" class = "form-control" placeholder = "Last Name" required>
+		
+		<button class = "btn btn-lg btn-primary btn-block" type = "submit" onclick = "sendRequest("/path", onRegister);"> Register </button>
+	  </form>
+	  -->
+	  
+    </div> <!-- /container -->
+
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script>window.jQuery || document.write('<script src="../../../../assets/js/vendor/jquery.min.js"><\/script>')</script>
+    <script src="{{url_for('static', filename = 'bootstrap-4.0.0-beta/assets/js/vendor/popper.min.js') }}"></script>
+    <script src="{{url_for('static', filename = 'bootstrap-4.0.0-beta/dist/js/bootstrap.min.js') }}"></script>
+    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+    <script src="{{url_for('static', filename = 'bootstrap-4.0.0-beta/assets/js/ie10-viewport-bug-workaround.js') }}"></script>
+  </body>
+</html>

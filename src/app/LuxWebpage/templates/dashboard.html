@@ -7,13 +7,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <meta name="description" content="">
     <meta name="author" content="">
-	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
-
-	<!-- Bootstrap core CSS -->
-    <link href="{{url_for('static', filename = 'bootstrap-4.0.0-beta/dist/css/bootstrap.min.css') }}" rel="stylesheet">
-
-    <!-- Custom styles for this template -->
-    <!-- <link href="{{url_for('static', filename = 'jumbotron.css') }}" rel="stylesheet"> -->
+    <link href="{{url_for('static', filename = 'vendor/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{url_for('static', filename = 'css/style.css') }}" rel="stylesheet">
+	<link href="{{url_for('static', filename = 'vendor/bootstrap/css/bootstrap.css') }}" rel="stylesheet">
+    <link rel="stylesheet" href="{{url_for('static',filename = 'vendor/font-awesome/css/font-awesome.min.css') }}">
+    <link rel="stylesheet" href="{{url_for('static',filename = 'vendor/simple-line-icons/css/simple-line-icons.css') }}">
+	<link href="https://gitcdn.github.io/bootstrap-toggle/2.2.2/css/bootstrap-toggle.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Lato" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Catamaran:100,200,300,400,500,600,700,800,900" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Muli" rel="stylesheet">
   </head>
 
   <body onload = "loading_page()">
@@ -23,40 +25,20 @@
       <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
       </button>
-
       <div class="collapse navbar-collapse" id="navbarsExampleDefault">
         <ul class="navbar-nav mr-auto">
           <!-- <li class="nav-item active">
             <a class="nav-link" href="index.html">Home <span class="sr-only">(current)</span></a>
           </li> -->
           <li class="nav-item">
-            <a class="nav-link" href="about.html">About</a>
+            <a class="nav-link" href="Luxabout.html">About</a>
           </li>
-		  <li class="nav-item">
-            <a class="nav-link" href="dashboard.html">Dashboard</a>
-          </li>
-          <!--<li class = "nav-item" style = "float:right">
-          <a class = "nav-link" href = "Luxcontact.html"> Contact </a>
-          </li>-->
-          <!--<li class="nav-item">
-            <a class="nav-link" href="LuxLogin.html">Sign-up/Login</a>
-          </li>
-          -->
-		  <!--
-          <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="http://example.com" id="dropdown01" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Dropdown</a>
-            <div class="dropdown-menu" aria-labelledby="dropdown01">
-              <a class="dropdown-item" href="#">Action</a>
-              <a class="dropdown-item" href="#">Another action</a>
-              <a class="dropdown-item" href="#">Something else here</a>
-            </div>
-          </li>
-		  -->
-          <!--
-		  <li class = "nav-item" style = "float:right">
+          <li class = "nav-item" style = "float:right">
 			<a class = "nav-link" href = "Luxcontact.html"> Contact </a>
-		  </li>
-          -->
+          </li>
+		  <li class = "nav-item" style = "float:right">
+			<a class = "nav-link" href = "dashboard.html"> Dashboard </a>
+          </li>
         </ul>
       </div>
     </nav>
@@ -67,26 +49,27 @@
 
 		</div>
 
-      <div class="starter-template">
-		<br> <br> <br>
-        <h1>Your registered devices:</h1>
+		<div class="starter-template">
+			<br> <br> <br>
+			<br>
+			<h1 class = "text-center" style = "background-color:#555;color:white;margin-bottom:0px;border-radius:5px;">Lux dashboard - Devices</h1>
+			<div id = 'user_devices'>
 
-		<div id = 'user_devices'>
-
-		</div>
+			</div>
 
 		<!-- <button class = "btn" onclick = "addDevice"> Add new device </button> -->
 		</div>
-	  <hr>
+		<hr>
 
-      <footer>
-        <p>CSE 442 - Fall 2017&copy; </p>
-      </footer>
+		  <footer>
+			<p>CSE 442 - Fall 2017&copy; </p>
+		  </footer>
     </div><!-- /.container -->
-		<script>
+	<script>
+    setInterval("loading_page()", 5000);
 		var request_for_page = {"cmd": "2"};
-        var deviceState = {};
-        
+
+		var deviceState = {};
 		function loading_page() {
 			sendRequest(true, request_for_page, "/status_req");
 		}
@@ -99,16 +82,18 @@
 				if (this.readyState == 4 && this.status == 200) {
 					if (upd) {
 						onPageLoad(this);
-					} else {
-                        var resp = xhttp.responseText;
-                        myDevices = JSON.parse(resp);
-                        var devicePictureState = checkOnOrOffState(myDevices.data.level);
-                        deviceState[myDevices.serial] = myDevices.data.level;
-                        // alert(myDevices.serial);
-                        document.getElementById(myDevices.serial).getElementsByClassName("Device_img")[0].src = devicePictureState.src;
+					}
+          else{
+            var resp = xhttp.responseText;
+            myDevices = JSON.parse(resp);
+            var devicePictureState = checkOnOrOffState(myDevices.data.level);
+            deviceState[myDevices.serial] = myDevices.data.level;
+            // alert(myDevices.serial);
+            document.getElementById(myDevices.serial).getElementsByClassName("Device_img")[0].src=devicePictureState.src;
 
-                        // alert(devicePictureState);
-                    }
+            // alert(devicePictureState);
+
+          }
 				}
 			}
 			var param = JSON.stringify(data);
@@ -116,167 +101,108 @@
 		}
 
 		function onPageLoad(xhttp) {
-            var resp = xhttp.responseText;
+			var resp = xhttp.responseText;
 			myDevices = JSON.parse(resp);
-            
-            //alert(resp);
-            
-            var mylist = document.createElement("div");
-            mylist.id = "myLuxDevices";
-
+		  // alert(resp);
+      var devices = document.getElementById("user_devices");
+      while(devices.hasChildNodes()){
+        devices.removeChild(devices.lastChild);
+      }
+			var mylist = document.createElement("ul");
+			mylist.id = "myLuxDevices";
+			mylist.className = "list-group";
 			for (x in myDevices) {
 
 				var deviceID = myDevices[x].serial;
-                
-                //alert(deviceID);
-                
-				//var deviceName = myDevices[x].Device;
-				deviceState[deviceID] = myDevices[x].data.level;
-                
-                //alert(deviceState[deviceID]);
-                
+				//var deviceName = myDevices[x].data.name;
+				deviceState[deviceID]=myDevices[x].data.level;
 				var device_img = checkOnOrOffState(deviceState[deviceID]);
-                var device = document.createElement("div");
-                var deviceName = document.createElement("h5");
-                var stateSlider = document.createElement('div');
-                var on = document.createElement("p");
-                var off = document.createElement("p");
+				var device = document.createElement("li");
+				var deviceInfo = document.createElement("div");
+				var deviceName = document.createElement("h2");
+				var deviceSerial = document.createElement("h4");
+				var sliderCon = document.createElement("div");
+				var stateSlider = document.createElement('label');
+				var checkBox = document.createElement('input');
+				var handler = document.createElement('span');
+				var setting = document.createElement('i');
+				setting.className ="icon-settings text-primary";
 
-                stateSlider.style.display = "inline-block";
-                stateSlider.id = "slider";
-                on.style.backgroundColor = "rgb(0,255,0)";
-                on.innerHTML = "ON";
-                off.innerHTML = "OFF";
-                on.style.float = "left";
-                off.style.float = "right";
-                off.style.backgroundColor = "rgb(255,0,0)";
-                stateSlider.appendChild(on);
-                stateSlider.appendChild(off);
+				sliderCon.className = "slider-con my-auto ";
+				deviceInfo.className = "my-auto deviceName";
+				deviceName.className = "";
+				deviceSerial.className = "text-muted text-center"
+				checkBox.type = "checkbox";
+				checkBox.className = "";
+				handler.innerHTML="ON OFF";
+				handler.className = "slider round";
 
-                deviceName.innerHTML= myDevices[x].data.name;
-                deviceName.style.textAlign ="center";
-                device.className = "device";
-                device.style.width = "122px";
-                device.id = deviceID;
+				stateSlider.className = "switch";
 
-                device.appendChild(device_img);
-                device.appendChild(deviceName);
-                device.appendChild(stateSlider);
-                stateSlider.addEventListener("click",onState(myDevices[x].data.name, deviceID));
-                mylist.appendChild(device);
+				deviceInfo.appendChild(deviceName);
+
+				deviceInfo.appendChild(deviceSerial);
+				stateSlider.appendChild(checkBox);
+				stateSlider.appendChild(handler);
+				sliderCon.appendChild(stateSlider);
+				if(myDevices[x].data.level==10){
+					checkBox.checked=true;
+				}else{
+					checkBox.checked = false;
+				}
+				deviceName.innerHTML= "Device Name: "+myDevices[x].data.name;
+				deviceSerial.innerHTML = "- Serial number: "+ myDevices[x].serial+ " -";
+				deviceName.style.textAlign ="center";
+				device.className = "list-group-item device";
+				device.style.display = "flex";
+				device.id = deviceID;
+				device.appendChild(deviceInfo);
+				device.appendChild(sliderCon);
+				device.appendChild(device_img);
+				device.appendChild(setting);
+
+				stateSlider.addEventListener("click",onState(myDevices[x].data.name,deviceID));
+				mylist.appendChild(device);
 			}
 
 			document.getElementById("user_devices").appendChild(mylist);
 
 			//var count = 0;
-            //document.addEventListener('click',onState(myDevices[temp[0]].Device,myDevices[temp[0]].serial));
+      //document.addEventListener('click',onState(myDevices[temp[0]].Device,myDevices[temp[0]].serial));
 		}
 
 		function checkOnOrOffState(deviceState) {
 			if (deviceState == 10) {
-                var image = document.createElement('img');
-                image.src = "{{url_for('static', filename = 'images/lighton.jpg') }}";
-                image.className = "Device_img";
-                image.width = "122";
-                image.height = "180";
-                image.display = "block";
-                image.margin = "auto";
+				var image = document.createElement('img');
+				image.src = "{{url_for('static', filename = 'images/lighton.jpg') }}";
+				image.className = "Device_img";
 				return image;
 			}
 			else if (deviceState == 0) {
-                var image = document.createElement('img');
-                image.src = "{{url_for('static', filename = 'images/lightoff.jpg') }}";
-                image.className = "Device_img";
-                image.width = "122";
-                image.height = "180";
-                image.display = "block";
-                image.margin = "auto";
-                return image;
+				var image = document.createElement('img');
+				image.src = "{{url_for('static', filename = 'images/lightoff.jpg') }}";
+				image.className = "Device_img";
+				return image;
 			}
 		}
-        
 		function onState(deviceName, deviceID) {
-            return function(){
-                if(deviceState[deviceID]==0) {
-                    var data = {"cmd":"4", "uuid":"0", "serial": deviceID, "data":{"name": deviceName, "level": 10}};
-                    // alert("ON");
-                    //deviceState[deviceID]=10;
-                    sendRequest(false, data, "/update_req");
-                } else if (deviceState[deviceID]==10) {
-                    var data = {"cmd":"4", "uuid":"0", "serial": deviceID, "data":{"name": deviceName, "level": 0}};
-                    // alert("OFF");
-                    //deviceState[deviceID]=0;
-                    sendRequest(false, data, "/update_req");
-                }
-            }
-		}
+			return function(){
+				if(deviceState[deviceID]==0){
+						var data = {"cmd":"4", "uuid":"0", "serial": deviceID, "data":{"name": deviceName, "level": 10}};
+						// alert("ON");
+						//deviceState[deviceID]=10;
 
-
-        /*
-		function checkFailure(xhttp) {
-			if (xhttp.responseText == "{'table': 'failed'}") {
-				// alert telling user the table of devices failed to load properly
-				var tableAlert = "<div class = 'alert alert-danger' role = 'alert'> <button type = 'button' class = 'close' data-dismiss = 'alert' aria-label = 'Close'> <span aria-hidden = 'true'>&times;</span> </button> The table of devices failed to load from the server </div>";
-				document.getElementById("invalid_alert").innerHTML = tableAlert;
-				return true;
-			}
-			if (xhttp.responseText == "{'changeName': 'failed'}") {
-				// alert telling user changing the name of a device failed
-				var changeNameAlert = "<div class = 'alert alert-danger' role = 'alert'> <button type = 'button' class = 'close' data-dismiss = 'alert' aria-label = 'Close'> <span aria-hidden = 'true'>&times;</span> </button> The server failed to change the name of that device </div>";
-				document.getElementById("invalid_alert").innerHTML = changeNameAlert;
-				return true;
-			}
-			if (xhttp.responseText == "{'addDevice': 'failed'}") {
-				// alert telling user adding a new device failed
-				var addDeviceAlert = "<div class = 'alert alert-danger' role = 'alert'> <button type = 'button' class = 'close' data-dismiss = 'alert' aria-label = 'Close'> <span aria-hidden = 'true'>&times;</span> </button> The server failed to add that new device to your list </div>";
-				document.getElementById("invalid_alert").innerHTML = addDeviceAlert;
-				return true;
-			}
-			if (xhttp.responseText == "{'light_level': 'failed'}") {
-				// alert telling user turning light on/off failed
-				var setLevelAlert = "<div class = 'alert alert-danger' role = 'alert'> <button type = 'button' class = 'close' data-dismiss = 'alert' aria-label = 'Close'> <span aria-hidden = 'true'>&times;</span> </button> The server failed to change the state of the Lux device </div>";
-				document.getElementById("invalid_alert").innerHTML = setLevelAlert;
-				return true;
-			}
-		}
-		*/
-
-		/*
-		function changeDeviceName(deviceNumber) {
-			var originalName = document.getElementById("myLuxDevices").rows[deviceNumber].cells.item(0).innerHTML;
-			var userPrompt = prompt("Enter new device name:", originalName);
-
-			if (userPrompt != null) {
-				sendRequest('/path', verifyChangeName, "oldname:" + originalName + " newname:" + userPrompt);
+						sendRequest(false, data, "/update_req");
+				}
+				else if (deviceState[deviceID]==10){
+				  var data = {"cmd":"4", "uuid":"0", "serial": deviceID, "data":{"name": deviceName, "level": 0}};
+						// alert("OFF");
+						//deviceState[deviceID]=0;
+				  sendRequest(false, data, "/update_req");
+				}
 			}
 		}
 
-		function verifyChangeName(xhttp) {
-			console.log(xhttp.responseText);
-			// call the sendRequest for onPageLoad again?
-		}
-
-		function changeGroup(xhttp) {
-			// Take the data in the drop-down menu? and send it to the server
-			// Check to see if it was successful
-		}
-
-		function addDevice(xhttp) {
-			// Create a alert/pop-up/prompt for user to enter new device information
-			// Enter device serial number
-			// find out how to reload the page for updated list?
-		}
-
-		function removeDevice(deviceNumber) {
-			var deviceName = document.getElementById("myLuxDevices").rows[deviceNumber].cells.item(0).innerHTML;
-			sendRequest('/path', verifyRemoveDevice, "remove:" + deviceName);
-		}
-
-		function verifyRemoveDevice(xhttp) {
-			console.log(xhttp.responseText);
-			// call the sendRequest for onPageLoad again?
-		}
-		*/
 		</script>
 
 
@@ -284,11 +210,10 @@
     <!-- Bootstrap core JavaScript
     ================================================== -->
     <!-- Placed at the end of the document so the pages load faster -->
-    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
-    <script>window.jQuery || document.write('<script src="../../../../assets/js/vendor/jquery.min.js"><\//script>')</script>
-    <script src="{{url_for('static', filename = 'bootstrap-4.0.0-beta/assets/js/vendor/popper.min.js') }}"></script>
-    <script src="{{url_for('static', filename = 'bootstrap-4.0.0-beta/dist/js/bootstrap.min.js') }}"></script>
-    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
-    <script src="{{url_for('static', filename = 'bootstrap-4.0.0-beta/assets/js/ie10-viewport-bug-workaround.js') }}"></script>
+	<script src="{{url_for('static',filename = 'vendor/jquery/jquery.min.js') }}"></script>
+	<script src="{{url_for('static',filename = 'vendor/popper/popper.min.js') }}"></script>
+	<script src="{{url_for('static',filename = 'vendor/bootstrap/js/bootstrap.js') }}"></script>
+    <script src="{{url_for('static',filename = 'vendor/bootstrap/js/bootstrap.min.js') }}"></script>
+	<script src="https://gitcdn.github.io/bootstrap-toggle/2.2.2/js/bootstrap-toggle.min.js"></script>
   </body>
 </html>
