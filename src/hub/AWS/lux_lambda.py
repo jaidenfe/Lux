@@ -60,6 +60,7 @@ def update_shadow(light_name, status):
     client.connect()
 
     # Update the value stored in the shadow
+    # For now, only one command can exist at a time in the shadow
     handler = client.createShadowHandlerWithName(SHADOW_THING_NAME, True)
     payload = '{{}:"{}"}'.format(light_name, status)
     handler.shadowUpdate(payload, None, 5)
