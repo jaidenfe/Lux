@@ -6,14 +6,13 @@ AWS Lambda Alexa integration
 3. Hub server must poll for updates to Shadow
 """
 
-from AWSIoTPythonSDK.MQTTLib import AWSIoTMQTTShadowClient
+import boto3
+import json
 
 
 # Shadow client configuration
-SHADOW_CLIENT_ID = ""
-SHADOW_ENDPOINT = ""
-SHADOW_PORT = 8333
-SHADOW_THING_NAME = "lux-light-status"
+SHADOW_THING_NAME = "lux-alexa-dev"
+SHADOW_REGION = "us-east-2"
 
 
 def generate_response(message):
@@ -57,15 +56,18 @@ def update_shadow(light_name, status):
     """
 
     # Configure and connect to shadow device
-    client = AWSIoTMQTTShadowClient(SHADOW_CLIENT_ID)
-    client.configureEndpoint(SHADOW_ENDPOINT, SHADOW_PORT)
-    client.connect()
+    client = boto3.client('iot-data', region_name=SHADOW_REGION)
+    data = {
+        "state": {
+            "desired": {
+                light_name: status
+            }
+        }
+    }
+    payload = json.dumps(data)
 
     # Update the value stored in the shadow
-    # For now, only one command can exist at a time in the shadow
-    handler = client.createShadowHandlerWithName(SHADOW_THING_NAME, True)
-    payload = '{ "state" : { "desired" : { "{}" : "{}" } } }'.format(light_name, status)
-    handler.shadowUpdate(payload, None, 5)
+    client.update_thing_shadow(thingName=SHADOW_THING_NAME, payload=payload)
 
 
 def lambda_handler(event, context):
