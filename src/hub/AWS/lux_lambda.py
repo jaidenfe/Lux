@@ -8,6 +8,8 @@ AWS Lambda Alexa integration
 
 from AWSIoTPythonSDK.MQTTLib import AWSIoTMQTTShadowClient
 
+
+# Shadow client configuration
 SHADOW_CLIENT_ID = ""
 SHADOW_ENDPOINT = ""
 SHADOW_PORT = 8333
@@ -30,9 +32,9 @@ def generate_response(message):
                 "text": message
             },
             "card": {
+                "type": "Simple",
                 "content": message,
-                "title": "Lux Light",
-                "type": "Simple"
+                "title": "Lux Light"
             },
             "reprompt": {
                 "outputSpeech": {
@@ -62,7 +64,7 @@ def update_shadow(light_name, status):
     # Update the value stored in the shadow
     # For now, only one command can exist at a time in the shadow
     handler = client.createShadowHandlerWithName(SHADOW_THING_NAME, True)
-    payload = '{{}:"{}"}'.format(light_name, status)
+    payload = '{ "state" : { "desired" : { "{}" : "{}" } } }'.format(light_name, status)
     handler.shadowUpdate(payload, None, 5)
 
 
@@ -83,6 +85,12 @@ def lambda_handler(event, context):
             update_shadow(intent['slots']['Light']['value'], 'on')
         elif intent['name'] == 'LuxTurnOff':
             update_shadow(intent['slots']['Light']['value'], 'off')
+        elif intent['name'] == 'AMAZON.HelpIntent':
+            return generate_response('Please say turn on or turn off, followed by the light name')
+        elif intent['name'] == 'AMAZON.StopIntent':
+            return generate_response('Ok')
+        elif intent['name'] == 'AMAZON.CancelIntent':
+            return generate_response('Ok')
         else:
             # This really shouldn't happen, and would likely be due to a configuration error
             return generate_response('I\'m not sure what you mean')
