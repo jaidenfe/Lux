@@ -98,4 +98,3 @@ def lambda_handler(event, context):
             return generate_response('I\'m not sure what you mean')
 
     return generate_response('OK, I will do that.')
-

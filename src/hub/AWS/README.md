@@ -17,3 +17,8 @@ The latest release can be found [here](https://github.com/boto/boto3/releases).
 3. Upload to AWS Lambda via the `Upload a .ZIP file` option.
 4. Ensure the runtime is set to `Python 3.6`
 5. Set the handler to `lux_lambda.lambda_handler`
+
+## 3. Configuring Alexa
+
+1. Add the skills `LuxTurnOn` and `LuxTurnOff` with parameter `Light`
+2. Add the utterances specified in `utterances.txt`
