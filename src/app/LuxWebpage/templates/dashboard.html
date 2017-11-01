@@ -86,10 +86,17 @@
 		<script>
 		var request_for_page = {"cmd": "2"};
         var deviceState = {};
-        
-		function loading_page() {
-			sendRequest(true, request_for_page, "/status_req");
-		}
+        var temp = -1;                              /* collab Rmiller1673 - my way to keep onload for base case */
+
+        /* collab Rmiller1673 - setting the request for a status update to be sent every 5 seconds */
+        function loading_page() {
+            /* base case for loading the page*/
+            sendRequest(true, request_for_page, "/status_req");
+            /* updating every 5 seconds */
+            setInterval(function () {
+                sendRequest(true, request_for_page, "/status_req")
+            }, 5000) ;
+        }
 
 		function sendRequest(upd, data, type) {
 			var xhttp = new XMLHttpRequest();
@@ -167,7 +174,12 @@
 			}
 
 			document.getElementById("user_devices").appendChild(mylist);
-
+            /*Rmiller1673 way of removing the html attached to load call each time so duplicates light not created*/
+            if (temp === -1) {
+                temp = -100;
+            } else {
+                document.getElementById("user_devices").removeChild(mylist);
+            }
 			//var count = 0;
             //document.addEventListener('click',onState(myDevices[temp[0]].Device,myDevices[temp[0]].serial));
 		}
