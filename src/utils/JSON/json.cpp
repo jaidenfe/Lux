@@ -139,12 +139,14 @@ std::string Json::jsonify(){
                 case STATUS:
                         if(data["level"]!="") json_string = json_string + "\"level\":" + data["level"];
                         if(data["name"]!="") json_string = json_string+",\"name\":\""+data["name"]+"\"";
+						if(data["group_name"]!="") json_string = json_string+",\"group_name\":\""+data["group_name"]+"\"";
                         json_string = json_string + "}";
                         break;
 
                 case UPDATE_REQUEST:
                         if(data["devices"]!="") json_string = json_string+"\"devices\":\""+data["devices"]+"\"";
                         if(data["name"]!="") json_string = json_string+",\"name\":\""+data["name"]+"\"";
+						if(data["group_name"]!="") json_string = json_string+",\"group_name\":\""+data["group_name"]+"\"";
                         if(data["add_group"]!="") json_string = json_string+",\"add_group\":\""+data["add_group"]+"\"";
                         if(data["remove_group"]!="") json_string = json_string+",\"remove_group\":\""+data["remove_group"]+"\"";
                         if(data["level"]!="") json_string = json_string+",\"level\":"+data["level"];
@@ -153,6 +155,7 @@ std::string Json::jsonify(){
 
                 case UPDATE:
                         if(data["level"]!="") json_string = json_string + "\"level\":"+data["level"];
+						if(data["group_name"]!="") json_string = json_string+",\"group_name\":\""+data["group_name"]+"\"";
                         json_string = json_string + "}";
                         break;
 

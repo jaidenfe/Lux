@@ -178,7 +178,7 @@ void server_send(int c_fd, string msg) {
 	memcpy(a, msg.c_str(), MESSAGE_SIZE);
 	a[MESSAGE_SIZE] = 0;
     
-    cout << "[->" << c_fd << "]" << msg << endl;
+    cout << "[S->" << c_fd << "]" << msg << endl;
     
 	if (send(c_fd, a, MESSAGE_SIZE, 0) == -1) {
 		cerr << "Failed to send data to client " << c_fd << "." << endl;
@@ -263,7 +263,7 @@ void* read_client(void* c_fd_p) {
 		map<int, cmd_func*>::iterator it = server_commands.find(cmd);
 		pthread_mutex_unlock(&mtx);
 		
-		cout << "[CLIENT " << c_fd << "]: " << s_msg << endl;
+		cout << "[S<-" << c_fd << "]: " << s_msg << endl;
 		
 		it->second(c_fd, s_msg);//respond accordingly
 	}
@@ -684,6 +684,8 @@ void client_status_req(int c_fd, string msg) {
 			send_status(c_fd, d, g_name);
 		}
 	}
+	
+	server_send(c_fd, STAT_REQ_DELIM);
 	
 	//delete(rcv_json);
 }
