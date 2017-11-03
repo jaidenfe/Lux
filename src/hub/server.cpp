@@ -423,6 +423,8 @@ void client_register(int c_fd, string msg) {
 	
 	g->addDevice(d);
 	
+	updateFile(DATA_FILE);
+	
 	client_connect(c_fd, msg);
 	
 	delete(json);
