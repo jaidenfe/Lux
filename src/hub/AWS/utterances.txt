@@ -1,0 +1,4 @@
+LuxTurnOn turn on {Light}
+LuxTurnOn turn {Light} on
+LuxTurnOff turn off {Light}
+LuxTurnOff turn {Light} off
