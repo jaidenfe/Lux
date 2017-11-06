@@ -7,6 +7,7 @@ port = 8080
 buf_size = 1024#max message size
 dict = None#last recieved message in map format
 connected = False
+status_req_delim = "STOP"
 
 REGISTER = 0
 CONNECT = 1
@@ -45,13 +46,24 @@ def status_req():
         command = STATUS_REQUEST
         msg = '{"cmd":' + str(command) + ',"uuid":"0","serial":"0","data":{}}'
         send(msg)#status_req
-
-        resp = '{"1" :' + read().decode('utf-8') + "}"#TODO read and return combined JSON once end delimiter/message is found (not yet implemented by server)
-
+		
+        count = 1;
+        resp = "{"
+        
+        while (True):
+            rmsg = read().decode('utf-8')
+            if (rmsg == status_req_delim):
+                break
+            if (count > 1):
+                resp = resp + ","
+            resp = resp + '"' + str(count) + '" :' + rmsg
+            count = count + 1
+        resp = resp + "}"
+        
         print(resp)
     #render_template('dashboard.html')
     return resp
-
+        
 
 @app.route('/update_req', methods=['POST'])
 def update_req():
@@ -62,10 +74,11 @@ def update_req():
         serial = rcvd["serial"]
         name = rcvd["data"]["name"]
         level = rcvd["data"]["level"]
-
-        msg = '{"cmd":' + str(command) + ',"uuid":"' + uuid + '","serial":"' + serial + '","data":{"name":"' + name + '","level":"' + str(level) + '"}}'
+        group = rcvd["data"]["group_name"]
+        
+        msg = '{"cmd":' + str(command) + ',"uuid":"' + uuid + '","serial":"' + serial + '","data":{"name":"' + name + '","level":"' + str(level) + '","group_name":"' + group + '"}}'
         send(msg)
-
+        
         resp = read().decode('utf-8')
     return resp#render_template('dashboard.html')
 
@@ -96,10 +109,10 @@ def disconnect():
     global connected, sock
     if (not connected):
         return#not connected, don't try to d/c
-
+    
     msg = '{"cmd":"7","uuid":"0","serial":"0","data":{}}'
     send(msg)#DISCONNECT -> client_exit();
-
+    
     sock.close()
     sock = None
     connected = False
@@ -118,4 +131,4 @@ def read():
     #dict = json.loads(msg.decode("utf-8"))
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0')
+    app.run(host='0.0.0.0', port=80)

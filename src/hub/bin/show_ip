@@ -1,0 +1,5 @@
+#!/bin/bash
+
+echo "$(hostname -I)"
+
+#python3 /home/pi/Lux/src/hub/display_ip/display.py $(hostname -I)

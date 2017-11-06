@@ -1,0 +1,20 @@
+#!/bin/bash
+
+sudo killall python3
+sudo killall server_test.exe
+
+cd /home/pi/Lux/src/app/LuxWebpage/
+sudo python3 app.py&
+
+cd ../../../tests/server/
+make clean
+make server_test
+./server_test.exe&
+
+echo "Server is running on $(myip)"
+
+#Display your external ip address on terminal
+show_ip
+
+#Run broadcast_ip script as background process and disable text output
+#(broadcast_ip > null)&
