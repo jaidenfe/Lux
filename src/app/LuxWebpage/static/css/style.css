@@ -1,0 +1,92 @@
+.device{
+	display:flex;
+	width:100%;
+	margin-bottom:5px;
+}
+.deviceName{
+	flex:3;
+}
+
+/* Hide default HTML checkbox */
+.switch input {
+	display:none;
+
+}
+.switch{
+	position:relative;
+	width:56px;
+	height:28px;
+}
+.slider-con{
+	flex:1;
+}
+/* The slider */
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+span{
+	font-size: 80%;
+	text-align: center;
+	padding-top: 4px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 28px;
+  width: 28px;
+  left: 0px;
+  bottom: 0px;
+  background-color: white;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+
+input:checked + .slider {
+	background-color: #2196F3;
+}
+input:not(:checked) + .slider{
+	background-color: #ff0000;
+}
+input:focus + .slider {
+  box-shadow: 0 0 1px #2196F3;
+}
+
+input:checked + .slider:before {
+  -webkit-transform: translateX(28px);
+  -ms-transform: translateX(28px);
+  transform: translateX(28px);
+}
+
+/* Rounded sliders */
+.slider.round {
+  border-radius: 34px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}
+
+.Device_img{
+
+	float:right;
+	width:122px;
+	height:180px;
+	margin :auto;
+}
+.unselectable {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}

@@ -20,6 +20,7 @@
 #define MESSAGE_SIZE 1024
 #define REG_KEY "e7Cv2ro_8K"
 #define DATA_FILE "../devman/devices.dat"
+#define STAT_REQ_DELIM "STOP"
 
 using namespace std;
 

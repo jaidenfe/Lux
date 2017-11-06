@@ -11,19 +11,14 @@
 
 	<!-- Bootstrap core CSS -->
     <link href="{{url_for('static', filename = 'vendor/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
-    <script src="{{url_for('static',filename = 'vendor/jquery/jquery.min.js') }}"></script>
-    <script src="{{url_for('static',filename = 'vendor/popper/popper.min.js') }}"></script>
-    <script src="{{url_for('static',filename = 'vendor/bootstrap/js/bootstrap.js') }}"></script>
-      <script src="{{url_for('static',filename = 'vendor/bootstrap/js/bootstrap.min.js') }}"></script>
-    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
-    <script src="{{url_for('static', filename = 'bootstrap-4.0.0-beta/assets/js/ie10-viewport-bug-workaround.js') }}"></script>
+
     <!-- Custom styles for this template -->
     <!-- <link href="{{url_for('static', filename = 'jumbotron.css') }}" rel="stylesheet"> -->
   </head>
 
   <body>
 
-    <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
+    <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
       <a class="navbar-brand" href="/">LUX</a>
       <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
@@ -34,8 +29,14 @@
           <!-- <li class="nav-item active">
             <a class="nav-link" href="index.html">Home <span class="sr-only">(current)</span></a>
           </li> -->
-          <li class="nav-item">
+          <!-- <li class="nav-item">
             <a class="nav-link" href="Luxabout.html">About</a>
+          </li> -->
+          <li class = "nav-item" style = "float:right">
+          <a class = "nav-link" href = "Luxcontact.html"> Contact </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="dashboard.html">Dashboard</a>
           </li>
 		  <!--
           <li class="nav-item dropdown">
@@ -47,56 +48,48 @@
             </div>
           </li>
 		  -->
-		  <li class = "nav-item" style = "float:right">
-			<a class = "nav-link" href = "Luxcontact.html"> Contact </a>
-		  </li>
-      <li class="nav-item">
-        <a class="nav-link" href="dashboard.html">Dashboard</a>
-      </li>
         </ul>
       </div>
     </nav>
 
-    <div class="jumbotron">
-      <div class="container">
-        <h1 class="display-3">Lux SmartSocket</h1>
-        <p> This project aims to create a low cost, home automation illumination device that will
-		turn any lamp or light source into a smart light source. </p>
-        <p><a class="btn btn-primary btn-lg" href="https://www.github.com/jaidenfe/Lux/wiki" role="button">Learn more &raquo;</a></p>
-      </div>
-    </div>
-
     <div class="container">
-      <div class="row">
-        <div class="col-md-4">
-          <h2>Development Progress</h2>
-          <p> <iframe width = "420" height = "315" src = "https://www.youtube.com/embed/sP9IeDcDcgs"> <iframe> </p>
-		  <br>
-          <p><a class="btn btn-secondary" href="https://www.github.com/jaidenfe/Lux/releases" role="button">View details on Github &raquo;</a></p>
-        </div>
-        <div class="col-md-4">
-          <h2>Past progress</h2>
-          <p> </p>
-          <p><a class="btn btn-secondary" href="#" role="button">View details &raquo;</a></p>
-        </div>
-        <div class="col-md-4">
-          <h2>Past progress</h2>
-          <p> </p>
-          <p><a class="btn btn-secondary" href="#" role="button">View details &raquo;</a></p>
-        </div>
-      </div>
 
-      <hr>
-	  <br>
+      <div class="starter-template">
+		<br> <br> <br>
+        <h1>About the Lux SmartSocket Device</h1>
+		<p class = "lead"> This project aims to create a low cost, home automation illumination device that will
+		turn any lamp or light source into a smart light source. Instead of replacing the light
+		bulb or wall socket, we aim to replace the light socket itself, allowing the user to continue
+		using the light bulbs they already have for their homes. In addition, we will have custom
+		firmware, custom hub software to connect multiple smart sockets and this custom web application
+		to interface with the devices. </p>
+		<br>
+		<p class = "lead"> The user of this device would connect their new Lux to their computer to run a simple
+		setup program, allowing them to view specific information regarding their device, i.e.
+		serial number, and edit network information such as the IP address and port number assigned
+		to the hub (server) and the network ssid and password for the wireless network. The Lux
+		would replace the socket the light bulb is placed in, and would need to be properly connected
+		with the lamp. The lamp light socket will both power the Lux Wi-Fi light socket and the light
+		bulb connected to the other Lux terminal. The user would be able to control particular lights
+		within their house using this accompanying webpage. </p>
+		<br>
+		<p class = "lead"> TODO: add in more information about the parts used to build and pictures of device
+	  </div>
+	  <hr>
+
       <footer>
         <p>CSE 442 - Fall 2017&copy; </p>
       </footer>
-    </div> <!-- /container -->
+    </div><!-- /.container -->
 
 
     <!-- Bootstrap core JavaScript
     ================================================== -->
     <!-- Placed at the end of the document so the pages load faster -->
-
+    <script src="{{url_for('static',filename = 'vendor/jquery/jquery.min.js') }}"></script>
+  	<script src="{{url_for('static',filename = 'vendor/popper/popper.min.js') }}"></script>
+  	<script src="{{url_for('static',filename = 'vendor/bootstrap/js/bootstrap.js') }}"></script>
+      <script src="{{url_for('static',filename = 'vendor/bootstrap/js/bootstrap.min.js') }}"></script>
+  	<script src="https://gitcdn.github.io/bootstrap-toggle/2.2.2/js/bootstrap-toggle.min.js"></script>
   </body>
 </html>
