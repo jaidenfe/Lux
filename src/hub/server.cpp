@@ -7,7 +7,11 @@ cmd_map server_commands;
 
 //FD<->SERIAL
 map<int, string> fd_to_ser;//<fd, serial>
+
 map<string, int> ser_to_fd;//<serial, fd>
+
+DeviceGroup* g; // TODO: rename to dg_all
+// TODO: Create all other group pointers
 
 //IP->FD
 map<string, int> by_ip;
@@ -53,9 +57,13 @@ void server_start() {
 	server_commands[UNREGISTER] = client_unregister;
 	server_commands[UPDATE_REQUEST] = client_upd_req;
 	server_commands[STATUS_REQUEST] = client_status_req;
-	
+
+	clearFile(DATA_FILE);
 	loadFile(DATA_FILE);
-	
+
+	g = new DeviceGroup("all");
+	// TODO: Instantiate all other groups
+
 	//TODO print server IP on startup
 	
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -177,9 +185,7 @@ void server_send(int c_fd, string msg) {
 	char* a = new char[MESSAGE_SIZE + 1];
 	memcpy(a, msg.c_str(), MESSAGE_SIZE);
 	a[MESSAGE_SIZE] = 0;
-    
-    cout << "[S->" << c_fd << "]" << msg << endl;
-    
+	cout << "[S->" << c_fd << "]" << msg << endl;
 	if (send(c_fd, a, MESSAGE_SIZE, 0) == -1) {
 		cerr << "Failed to send data to client " << c_fd << "." << endl;
 		return;
@@ -229,42 +235,41 @@ void* accept_devices(void* c_addr) {
 	return NULL;
 }
 
+// TODO: Add timeout so it doesn't get hung up
 void* read_client(void* c_fd_p) {
 	int c_fd = *(int*) c_fd_p;
-	
 	char msg[MESSAGE_SIZE];
-	
+
 	while(true) {
 		memset(&msg, 0, MESSAGE_SIZE);//clear the buffer
-		
+
 		if (recv(c_fd, msg, MESSAGE_SIZE, 0) < 1) {
-            cerr << "Client " << c_fd << " dropped the connection unexpectedly." << endl;
+			cerr << "Client " << c_fd << " dropped the connection unexpectedly." << endl;
 			client_exit(c_fd, "");
 			return NULL;
 		}
-		
 		string s_msg(msg);
-		
+
 		if (s_msg.front() != '{' || s_msg.back() != '}') {
-            cerr << "Client " << c_fd << " sent a non-JSON (invalid) message to the server." << endl;
+			cerr << "Client " << c_fd << " sent a non-JSON (invalid) message to the server." << endl;
 			client_exit(c_fd, "");
 			return NULL;//not JSON
 		}
-		
+
 		int cmd = Json(s_msg).cmd;//grab command type from JSON
-        
-        if (server_commands.count(cmd) == 0) {
-            cerr << "Client " << c_fd << " issued unknown command \"" << cmd << "\"." << endl;
-            client_exit(c_fd, "");
-            return NULL;
-        }
-		
-		pthread_mutex_lock(&mtx);	
+
+        	if (server_commands.count(cmd) == 0) {
+            		cerr << "Client " << c_fd << " issued unknown command \"" << cmd << "\"." << endl;
+            		client_exit(c_fd, "");
+            		return NULL;
+        	}
+
+		pthread_mutex_lock(&mtx);
 		map<int, cmd_func*>::iterator it = server_commands.find(cmd);
 		pthread_mutex_unlock(&mtx);
-		
+
 		cout << "[S<-" << c_fd << "]: " << s_msg << endl;
-		
+
 		it->second(c_fd, s_msg);//respond accordingly
 	}
 	return NULL;
@@ -275,30 +280,23 @@ void* read_client(void* c_fd_p) {
 void send_status_req(int c_fd, Device* d) {
 	/*
 	Json* json = new Json(STATUS_REQUEST, "0", d->getSerial());//TODO uuid
-	
 	server_send(c_fd, json->jsonify());//TO DEVICE
 	*/
-	
+
 	server_send(c_fd, to_string(STATUS_REQUEST) + "|");
-	
 	//delete(json);
 }
 
 void send_status(int c_fd, Device* d, string group_name) {
 	Json* json = new Json(STATUS, uuid_gen(), d->getSerial());
-				
 	json->data["name"] = d->getName();
 	json->data["group_name"] = group_name;
 	json->data["ip"] = d->getIP();
 	json->data["level"] = "\"" + to_string(d->getLightLevel()) + "\"";
 	//TODO add f_vers, h_vers
-			
-    string data = json->jsonify();
-            
-    //cout << data << endl;
-            
+	string data = json->jsonify();
+	//cout << data << endl;
 	server_send(c_fd, data);
-				
 	delete(json);
 }
 
@@ -362,26 +360,24 @@ void client_test(int c_fd, string msg) {
 
 void client_register(int c_fd, string msg) {
 	Json* json = new Json(msg);
-	
+
 	if (json->data["reg_key"].compare(REG_KEY) != 0) {
 		server_send(c_fd, to_string(FORCE_DISCONNECT));
-		
 		cerr << "Device " << c_fd << " attempted to register with improper reg key." << endl;
 		delete(json);
 		return;
 	}
-	
+
 	if (reg_devs.count(json->serial) > 0) {
 		client_connect(c_fd, msg);
-		
 		cerr << "Device " << c_fd << " attempted to register multiple times." << endl;
 		delete(json);
 		return;
 	}
-	
+
 	/*
 	string d_name = json->data["name"];
-	
+
 	if (!isValidName(d_name)) {
 		cerr << "Invalid device name: " << d_name << endl;
 		delete(json);
@@ -392,8 +388,8 @@ void client_register(int c_fd, string msg) {
     string devip = client_ip_by_fd(c_fd);
     
     //cout << devip << " reg at " << json->serial << endl;
-	
-	Device* d = new Device(devip, "TEST_DEVICE_1", json->serial);//NO NAME, SET BY WEB CLIENT
+	string default_name = "DEVICE-" + json->serial;
+	Device* d = new Device(devip, default_name, json->serial);//NO NAME, SET BY WEB CLIENT
 	
 	//d->setLightLevel(atoi(json->data["level"].c_str()));
 	d->set_f_vers(json->data["firmware_version"]);
@@ -418,8 +414,9 @@ void client_register(int c_fd, string msg) {
 		g = &g_perm;
 	}
 	*/
-	
-	DeviceGroup* g = new DeviceGroup("all");//TODO more device groups than just 'all'
+
+	// TODO: Get rid of the next line and have the group created on start up and globally accessible
+	//DeviceGroup* g = new DeviceGroup("all");//TODO more device groups than just 'all'
 	
 	g->addDevice(d);
 	

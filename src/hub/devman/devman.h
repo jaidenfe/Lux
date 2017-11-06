@@ -61,7 +61,7 @@ bool isValidVersion(string);//same
 DeviceGroup byGroupName(string);
 
 void updateFile(string);//must be called to update the devices file with current data
-
+bool clearFile(string);
 bool loadFile(string);
 
 #endif //LUX_DEVMAN_H

@@ -222,6 +222,16 @@ vector<string> split(string line, char delimiter){
 }
 //END UTILITY FUNCTION
 
+bool clearFile(string filename){
+
+	ifstream file(filename, ios::out|ios::trunc);
+	if(!file.is_open()){
+		return false;
+	}
+	file.close();
+	return true;
+}
+
 bool loadFile(string filename) {
 	ifstream file;
 	

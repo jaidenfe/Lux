@@ -113,7 +113,7 @@
 
       document.getElementById("user_devices").appendChild(mylistG);
       for (x in myDevices) {
-        var deviceGID = myDevices[x].data.group;
+        var deviceGID = myDevices[x].data.group_name;
 
         if(document.getElementById(deviceGID)===null){
           var groupList = document.createElement("li");
@@ -145,7 +145,7 @@
           mylistD.id = "myLuxDevice";
           mylistD.className = "list-device";
           groupInfo.appendChild(mylistD);
-          groupName.innerHTML = "Group: "+ myDevices[x].data.group;
+          groupName.innerHTML = "Group: "+ myDevices[x].data.group_name;
           groupList.appendChild(groupInfo);
           mylistG.appendChild(groupList);
         }
@@ -218,7 +218,7 @@
         //deviceState[deviceID]==0
         // alert(value);
 				if(value == false){
-						var data = {"cmd":"4", "uuid":"0", "serial": deviceID, "data":{"group": deviceGroup, "name": deviceName, "level": 10}};
+						var data = {"cmd":"4", "uuid":"0", "serial": deviceID, "data":{"group_name": deviceGroup, "name": deviceName, "level": 10}};
 						// alert("ON");
 						// deviceState[deviceID]=10;
 
@@ -239,7 +239,7 @@
             // alert("hi");
 				}
 				else if(value == true){
-				  var data = {"cmd":"4", "uuid":"0", "serial": deviceID, "data":{"group": deviceGroup, "name": deviceName, "level": 0}};
+				  var data = {"cmd":"4", "uuid":"0", "serial": deviceID, "data":{"group_name": deviceGroup, "name": deviceName, "level": 0}};
 						// alert("OFF");
 						//deviceState[deviceID]=0;
             //alert("OFF");
