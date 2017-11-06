@@ -28,9 +28,10 @@
 //      H - (3) - Hardware Version Number (##.#) without decimal (numeric)
 //      P - (6) - Production number (pha-numeric, case-sensitive)
 //      V - (2) - Device Code (case-insensitive/caps only) [Lux SmartSocket Device Code: 'SS'] 
-#define SERIAL_NUM "L001000000SS"
+#define SERIAL_NUM "L003000000SS"
 //#define HARDWARE_V "0.1"  // No actual hardware, just ESP8266 and LED
-#define HARDWARE_V "0.2" // Protoboard with 12V dc supplied externally and AC supplied externally. ESP8266 powered by FTDI cable.
+//#define HARDWARE_V "0.2" // Protoboard with 12V dc supplied externally and AC supplied externally. ESP8266 powered by FTDI cable.
+#define HARDWARE_V "0.3" // Protoboard with AC supply only
 #define FIRMWARE_V "1.0"
 #define LUX_FIRMWARE_V1_0
 #define FIRMWARE_VERSION_CHECK(fv, check) fv==check
@@ -40,8 +41,8 @@
 #ifdef LUX_FIRMWARE_V1_0  // Firmware Version 1.0 
 
 // ESP Access Point Variables
-const char* AP_ssid = "ESPSetup";
-const char* AP_password = "ESP8266";
+const char* AP_ssid = "LUX-000000";
+const char* AP_password = "claraluxin";
 
 // Network Connection Variables
 String LAN_ssid = "";
