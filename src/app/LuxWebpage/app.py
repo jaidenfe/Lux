@@ -35,52 +35,53 @@ def about():
 
 @app.route('/dashboard.html', methods=['GET'])
 def dashboard():
-    connect()
+    # connect()
     return render_template('dashboard.html')
 
 @app.route('/status_req', methods=['POST'])
 def status_req():
     rcvd = request.get_json()
-    resp = ""
-    if (rcvd != None):
-        command = STATUS_REQUEST
-        msg = '{"cmd":' + str(command) + ',"uuid":"0","serial":"0","data":{}}'
-        send(msg)#status_req
-		
-        count = 1;
-        resp = "{"
-        
-        while (True):
-            rmsg = read().decode('utf-8')
-            if (rmsg == status_req_delim):
-                break
-            if (count > 1):
-                resp = resp + ","
-            resp = resp + '"' + str(count) + '" :' + rmsg
-            count = count + 1
-        resp = resp + "}"
-        
-        print(resp)
+    # resp = ""
+    # if (rcvd != None):
+    #     command = STATUS_REQUEST
+    #     msg = '{"cmd":' + str(command) + ',"uuid":"0","serial":"0","data":{}}'
+    #     send(msg)#status_req
+    #
+    #     count = 1;
+    #     resp = "{"
+    #
+    #     while (True):
+    #         rmsg = read().decode('utf-8')
+    #         if (rmsg == status_req_delim):
+    #             break
+    #         if (count > 1):
+    #             resp = resp + ","
+    #         resp = resp + '"' + str(count) + '" :' + rmsg
+    #         count = count + 1
+    #     resp = resp + "}"
+    resp = {1:{"serial": "xg9gt5hd7651", "data": {"group_name": "Life", "name": "Lux", "level": 10}},2: {"serial": "1567hd5tg9gx", "data": {"group_name": "Baby", "name": "LuxZ", "level": 0}},3: {"serial": "1567hx", "data": {"group_name": "Life", "name": "LuxB", "level": 0}}}
+    print(resp)
     #render_template('dashboard.html')
-    return resp
+    return jsonify(resp)
         
 
 @app.route('/update_req', methods=['POST'])
 def update_req():
     rcvd = request.get_json()
-    if (rcvd != None):
-        command = rcvd["cmd"]
-        uuid = rcvd["uuid"]
-        serial = rcvd["serial"]
-        name = rcvd["data"]["name"]
-        level = rcvd["data"]["level"]
-        group = rcvd["data"]["group_name"]
-        
-        msg = '{"cmd":' + str(command) + ',"uuid":"' + uuid + '","serial":"' + serial + '","data":{"name":"' + name + '","level":"' + str(level) + '","group_name":"' + group + '"}}'
-        send(msg)
-        
-        resp = read().decode('utf-8')
-    return resp#render_template('dashboard.html')
+    print(rcvd)
+    # if (rcvd != None):
+    #     command = rcvd["cmd"]
+    #     uuid = rcvd["uuid"]
+    #     serial = rcvd["serial"]
+    #     name = rcvd["data"]["name"]
+    #     level = rcvd["data"]["level"]
+    #     group = rcvd["data"]["group_name"]
+    #
+    #     msg = '{"cmd":' + str(command) + ',"uuid":"' + uuid + '","serial":"' + serial + '","data":{"name":"' + name + '","level":"' + str(level) + '","group_name":"' + group + '"}}'
+    #     send(msg)
+    #
+    #     resp = read().decode('utf-8')
+    return jsonify(rcvd)#render_template('dashboard.html')
 
 @app.route('/unregister', methods=['POST'])
 def unregister():#TODO

@@ -1,3 +1,8 @@
+@media screen and (max-width: 480px){
+    .device{
+        flex: 1 1 auto;
+    }
+}
 .device{
 	display:flex;
 	width:100%;
@@ -10,12 +15,14 @@
 /* Hide default HTML checkbox */
 .switch input {
 	display:none;
-
 }
 .switch{
 	position:relative;
 	width:56px;
 	height:28px;
+    -webkit-border-radius:34px;
+    -moz-border-radius:34px;
+    border-radius:34px;
 }
 .slider-con{
 	flex:1;
@@ -89,4 +96,12 @@ input:checked + .slider:before {
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
+}
+.groupName{
+    margin-right:64px;
+    color:black;
+    font-size: 200%;
+}
+.groupName:hover{
+    opacity: 0.5;
 }
