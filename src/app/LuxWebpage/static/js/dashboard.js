@@ -190,23 +190,33 @@ function createNewGroup(mylistG, deviceGID) {
     stateSlider.appendChild(handler);
     sliderCon.appendChild(stateSlider);
     groupList.appendChild(sliderCon);
-    groupList.onClick="return true";
+    groupList.onClick = "return true";
     handler.addEventListener("click", groupState(deviceGID));
     groupInfo.className = "my-auto deviceGroup";
-    groupName.setAttribute("data-toggle","collapse");
-    groupName.setAttribute("href","#child"+deviceGID);
-    groupName.setAttribute("data-target","#child"+deviceGID);
-    groupName.className="groupName";
+    groupName.setAttribute("data-toggle", "collapse");
+    groupName.setAttribute("href", "#child" + deviceGID);
+    groupName.setAttribute("data-target", "#child" + deviceGID);
+    groupName.addEventListener("click", function () {
+            if (document.getElementsByClassName("groupName"+deviceGID)[0].getAttribute("aria-expanded")=="false") {
+
+                groupName.innerHTML = "Group: " + deviceGID + "  " + "<i class='fa fa-sort-asc' aria-hidden='true'></i>";
+            }
+            else {
+                groupName.innerHTML = "Group: " + deviceGID + "  " + "<i class='fa fa-sort-desc' aria-hidden='true'></i>";
+            }
+        }
+    );
+    groupName.className = "groupName groupName"+deviceGID;
     groupList.className = "list-group-item group";
     groupList.id = deviceGID;
     groupInfo.appendChild(groupName);
     var mylistD = document.createElement("ul");
-    mylistD.id = "child"+deviceGID;
+    mylistD.id = "child" + deviceGID;
     mylistD.className = "list-device collapse";
     groupInfo.appendChild(mylistD);
-    groupName.innerHTML = "Group: " + myDevices[x].data.group_name;
+    groupName.innerHTML = "Group: " + deviceGID + "  ";
 
-    groupName.innerHTML+="<i class='fa fa-sort-desc' aria-hidden='true'></i>";
+    groupName.innerHTML += "<i class='fa fa-sort-desc' aria-hidden='true'></i>";
     groupList.appendChild(groupInfo);
     mylistG.appendChild(groupList);
 }
