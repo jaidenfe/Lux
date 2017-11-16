@@ -28,6 +28,12 @@
 
 using namespace std;
 
+struct client {
+	int fd;
+	string serial, ip;
+	bool status_wait, send_status;
+};
+
 typedef void cmd_func(int client_fd, string message);
 typedef map<int, cmd_func*> cmd_map;
 
