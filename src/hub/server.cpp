@@ -172,30 +172,6 @@ void server_send(int c_fd, string msg) {
 	}
 	
 	server_send_dirty(c_fd, msg);
-	
-	/*if (fd_to_ser.count(c_fd) > 0) {//device client
-		server_wait_for_status.insert(c_fd);
-		
-		int attempts = 0;
-		
-		while(attempts < COMM_ATTEMPTS) {
-			
-			time_t s_time = time(NULL);//start time
-		
-			while((time(NULL) - s_time) < COMM_TIMEOUT) {
-				if (server_wait_for_status.count(c_fd) == 0) {
-					return;//status recieved, 
-				}
-			}
-		
-			//no status recieved, resend
-			server_send_dirty(c_fd, msg);
-			attempts++;
-		}
-		
-		//no status recieved, client exit
-		client_exit(c_fd, "");
-	}*/
 }
 
 void server_send_dirty(int c_fd, string msg) {
@@ -607,6 +583,30 @@ void client_unregister(int c_fd, string msg) {
 	//delete(d);
 }
 
+void status_wait(int c_fd, string msg) {
+	server_wait_for_status.insert(c_fd);
+		
+	int attempts = 0;
+		
+	while(attempts < COMM_ATTEMPTS) {
+			
+		time_t s_time = time(NULL);//start time
+		
+		while((time(NULL) - s_time) < COMM_TIMEOUT) {
+			if (server_wait_for_status.count(c_fd) == 0) {
+				return;//status recieved, 
+			}
+		}
+		
+		//no status recieved, resend
+		server_send_dirty(c_fd, msg);
+		attempts++;
+	}
+		
+	//no status recieved, client exit
+	client_exit(c_fd, "");
+}
+
 void client_upd_req(int c_fd, string msg) {
 	Json* rcv_json = new Json(msg);
 	
@@ -677,6 +677,8 @@ void client_upd_req(int c_fd, string msg) {
     
     pthread_mutex_lock(&mtx);
 	server_send(devfd, to_string(UPDATE) + "|" + type);
+	
+	status_wait(devfd, to_string(UPDATE) + "|" + type);
 	
 	waiting_on_status.insert(c_fd);
     pthread_mutex_unlock(&mtx);
