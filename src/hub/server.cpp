@@ -601,6 +601,8 @@ void client_unregister(int c_fd, string msg) {
 	
 	reg_devs.erase(serial);
 	
+	updateFile(DATA_FILE);
+	
 	delete(json);
 	//delete(d);
 }
