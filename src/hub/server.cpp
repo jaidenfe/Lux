@@ -499,17 +499,23 @@ void client_status(int c_fd, string msg) {
 	
 	string serial = json->serial;
 	
+	cout << "1" << endl;
+	
 	pthread_mutex_lock(&mtx);
 	if (server_wait_for_status.count(c_fd) > 0) {
 		server_wait_for_status.erase(c_fd);//recieved status
 	}
 	pthread_mutex_unlock(&mtx);
 	
+	cout << "2" << endl;
+	
 	if (reg_devs.count(serial) == 0) {
 		cerr << "Attempted to update the status of unregistered device" << c_fd << "." << endl;
 		delete(json);
 		return;
 	}
+	
+	cout << "3" << endl;
 	
 	//TODO change group if it's different
 	
@@ -520,14 +526,20 @@ void client_status(int c_fd, string msg) {
 	//d.set_f_vers(json->data["firmware_version"]);
 	//d.set_h_vers(json->data["hardware_version"]);
 	
+	cout << "4" << endl;
+	
 	for (set<int>::iterator it = waiting_on_status.begin(); it != waiting_on_status.end(); ++it) {
 		int fd = *it;
 		send_status(fd, d, "all");//TODO group name
 	}
 	
+	cout << "5" << endl;
+	
 	waiting_on_status.clear();
 	
 	updateFile(DATA_FILE);
+	
+	cout << "6" << endl;
 	
 	delete(json);
 }
