@@ -173,7 +173,7 @@ void server_send(int c_fd, string msg) {
 	
 	server_send_dirty(c_fd, msg);
 	
-	if (fd_to_ser.count(c_fd) > 0) {//device client
+	/*if (fd_to_ser.count(c_fd) > 0) {//connected device client
 		server_wait_for_status.insert(c_fd);
 		
 		int attempts = 0;
@@ -195,7 +195,7 @@ void server_send(int c_fd, string msg) {
 		
 		//no status recieved, client exit
 		client_exit(c_fd, "");
-	}
+	}*/
 }
 
 void server_send_dirty(int c_fd, string msg) {
@@ -719,6 +719,29 @@ void client_status_req(int c_fd, string msg) {
 	}
 	
 	server_send(c_fd, STAT_REQ_DELIM);
+	
+	//wait for status	
+	server_wait_for_status.insert(c_fd);
+		
+	int attempts = 0;
+		
+	while(attempts < COMM_ATTEMPTS) {
+			
+		time_t s_time = time(NULL);//start time
+		
+		while((time(NULL) - s_time) < COMM_TIMEOUT) {
+			if (server_wait_for_status.count(c_fd) == 0) {
+				return;//status recieved
+			}
+		}
+		
+		//no status recieved, resend
+		server_send_dirty(c_fd, msg);
+		attempts++;
+	}
+		
+	//no status recieved, client exit
+	client_exit(c_fd, "");
 	
 	//delete(rcv_json);
 }
