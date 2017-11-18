@@ -499,9 +499,11 @@ void client_status(int c_fd, string msg) {
 	
 	string serial = json->serial;
 	
+	pthread_mutex_lock(&mtx);
 	if (server_wait_for_status.count(c_fd) > 0) {
 		server_wait_for_status.erase(c_fd);//recieved status
 	}
+	pthread_mutex_unlock(&mtx);
 	
 	if (reg_devs.count(serial) == 0) {
 		cerr << "Attempted to update the status of unregistered device" << c_fd << "." << endl;
@@ -584,11 +586,15 @@ void client_unregister(int c_fd, string msg) {
 }
 
 void status_wait(int c_fd, string msg) {
+	pthread_mutex_lock(&mtx);
 	server_wait_for_status.insert(c_fd);
+	pthread_mutex_unlock(&mtx);
 		
 	int attempts = 0;
 		
 	while(attempts < COMM_ATTEMPTS) {
+		//send
+		server_send_dirty(c_fd, msg);
 			
 		time_t s_time = time(NULL);//start time
 		
@@ -599,7 +605,6 @@ void status_wait(int c_fd, string msg) {
 		}
 		
 		//no status recieved, resend
-		server_send_dirty(c_fd, msg);
 		attempts++;
 	}
 		
@@ -674,11 +679,11 @@ void client_upd_req(int c_fd, string msg) {
     int devfd = client_fd_by_serial(serial);
     
     //cout << devfd << ":" << serial << ":" << type << endl;
-    
-    pthread_mutex_lock(&mtx);
-	server_send(devfd, to_string(UPDATE) + "|" + type);
 	
 	status_wait(devfd, to_string(UPDATE) + "|" + type);
+    
+    pthread_mutex_lock(&mtx);
+	//server_send(devfd, to_string(UPDATE) + "|" + type);
 	
 	waiting_on_status.insert(c_fd);
     pthread_mutex_unlock(&mtx);
