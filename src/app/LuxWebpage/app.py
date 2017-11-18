@@ -46,15 +46,12 @@ def status_req():
         command = STATUS_REQUEST
         msg = '{"cmd":' + str(command) + ',"uuid":"0","serial":"0","data":{}}'
         send(msg)#status_req
-		
+
         count = 1;
         resp = "{"
-        
+
         while (True):
-            rd = read()
-            if (rd == b''):
-                break#ERROR
-            rmsg = rd.decode('utf-8')
+            rmsg = read().decode('utf-8')
             if (rmsg == status_req_delim):
                 break
             if (count > 1):
@@ -62,96 +59,76 @@ def status_req():
             resp = resp + '"' + str(count) + '" :' + rmsg
             count = count + 1
         resp = resp + "}"
-        
-        print(resp)
+    # resp = {1:{"serial": "xg9gt5hd7651", "data": {"group_name": "Life", "name": "Lux", "level": 10}},2: {"serial": "1567hd5tg9gx", "data": {"group_name": "Baby", "name": "LuxZ", "level": 0}},3: {"serial": "1567hx", "data": {"group_name": "Life", "name": "LuxB", "level": 0}}}
+    print(resp)
     #render_template('dashboard.html')
     return resp
-        
+
 
 @app.route('/update_req', methods=['POST'])
 def update_req():
     rcvd = request.get_json()
+    # print(rcvd)
     if (rcvd != None):
-        try:
-            command = rcvd["cmd"]
-            uuid = rcvd["uuid"]
-            serial = rcvd["serial"]
-            name = rcvd["data"]["name"]
-            level = rcvd["data"]["level"]
-            group = rcvd["data"]["group_name"]
-        
-            msg = '{"cmd":' + str(command) + ',"uuid":"' + uuid + '","serial":"' + serial + '","data":{"name":"' + name + '","level":"' + str(level) + '","group_name":"' + group + '"}}'
-            send(msg)
-        
-            resp = read().decode('utf-8')
-        except:
-            print("ERROR: Improper JSON recieved in update request command.")
+        command = rcvd["cmd"]
+        uuid = rcvd["uuid"]
+        serial = rcvd["serial"]
+        name = rcvd["data"]["name"]
+        level = rcvd["data"]["level"]
+        group = rcvd["data"]["group_name"]
+
+        msg = '{"cmd":' + str(command) + ',"uuid":"' + uuid + '","serial":"' + serial + '","data":{"name":"' + name + '","level":"' + str(level) + '","group_name":"' + group + '"}}'
+        send(msg)
+
+        resp = read().decode('utf-8')
     return resp#render_template('dashboard.html')
 
 @app.route('/unregister', methods=['POST'])
 def unregister():#TODO
     rcvd = request.get_json()
     if (rcvd != None):
-        try:
-            command = UNREGISTER
-            uuid = "0"
-            serial = rcvd["serial"]
-            msg = '{"cmd":' + str(command) + ',"uuid": uuid ,"serial": serial ,"data":{}}'
-            connect()
-            send(msg)
-            disconnect()
-        except:
-            print("ERROR: Improper JSON recieved in unregister command.")
+        command = UNREGISTER
+        uuid = "0"
+        serial = rcvd["serial"]
+        msg = '{"cmd":' + str(command) + ',"uuid": uuid ,"serial": serial ,"data":{}}'
+        connect()
+        send(msg)
+        disconnect()
     return render_template('dashboard.html')
 
 def connect():
     global connected, sock
     if (connected):
         return#don't make a second connection
-    try:
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.setblocking(True)
-        sock.connect((host, port))
-        connected = True
-        print("Connection established.")
-    except:
-        print("ERROR: Connection to server failed!")
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.setblocking(True)
+    sock.connect((host, port))
+    connected = True
+    print("Connection established.")
 
 def disconnect():
     global connected, sock
     if (not connected):
         return#not connected, don't try to d/c
-    
-    try:
-        msg = '{"cmd":"7","uuid":"0","serial":"0","data":{}}'
-        send(msg)#DISCONNECT -> client_exit();
-    
-        sock.close()
-        sock = None
-        connected = False
-        print("Connection terminated.")
-    except:
-        print("ERROR: Failed to disconnect from server!")
+
+    msg = '{"cmd":"7","uuid":"0","serial":"0","data":{}}'
+    send(msg)#DISCONNECT -> client_exit();
+
+    sock.close()
+    sock = None
+    connected = False
+    print("Connection terminated.")
 
 def send(msg):
     global connected, sock
     if (not connected or sock == None):
-        print("ERROR: Attempted to send data without connection.")
+        print("Attempted to send data without connection.")
         return
-    try:
-        sock.sendall(str.encode(msg))
-    except:
-        print('ERROR: Failed to send message - "' + msg + '" - to the server.')
-        disconnect()
+    sock.sendall(str.encode(msg))
 
 def read():
-    try:
-        msg = sock.recv(buf_size).split(b'\0', 1)[0]
-        return msg
-    except:
-        print("ERROR: Failed to recieve message from the server.")
-        disconnect()
-    return b''
+    msg = sock.recv(buf_size).split(b'\0', 1)[0]
+    return msg
     #dict = json.loads(msg.decode("utf-8"))
 
 if __name__ == "__main__":

@@ -4,11 +4,9 @@
 #include <iostream>
 #include <unistd.h>
 #include <string.h>
-#include <cerrno>
 #include <map>
 #include <list>
 #include <set>
-#include <time.h>
 #include <pthread.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -23,16 +21,10 @@
 #define REG_KEY "e7Cv2ro_8K"
 #define DATA_FILE "../devman/devices.dat"
 #define STAT_REQ_DELIM "STOP"
-#define COMM_TIMEOUT 5
 #define COMM_ATTEMPTS 3
+#define COMM_TIMEOUT 5
 
 using namespace std;
-
-struct client {
-	int fd;
-	string serial, ip;
-	bool status_wait, send_status;
-};
 
 typedef void cmd_func(int client_fd, string message);
 typedef map<int, cmd_func*> cmd_map;
