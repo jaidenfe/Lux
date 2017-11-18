@@ -173,30 +173,32 @@ void server_send(int c_fd, string msg) {
 	
 	server_send_dirty(c_fd, msg);
 	
-	pthread_mutex_lock(&mtx);
-	server_wait_on_response.insert(c_fd);
-	pthread_mutex_unlock(&mtx);
+	if (fd_to_ser.count(c_fd) > 0) {//connected device
+		pthread_mutex_lock(&mtx);
+		server_wait_on_response.insert(c_fd);
+		pthread_mutex_unlock(&mtx);
 		
-	int attempts = 0;
+		int attempts = 0;
 		
-	while(attempts < COMM_ATTEMPTS) {
-		//send
-		server_send_dirty(c_fd, msg);
+		while(attempts < COMM_ATTEMPTS) {
+			//send
+			server_send_dirty(c_fd, msg);
 			
-		time_t s_time = time(NULL);//start time
+			time_t s_time = time(NULL);//start time
 		
-		while((time(NULL) - s_time) < COMM_TIMEOUT) {
-			if (server_wait_on_response.count(c_fd) == 0) {
-				return;//status recieved, 
+			while((time(NULL) - s_time) < COMM_TIMEOUT) {
+				if (server_wait_on_response.count(c_fd) == 0) {
+					return;//status recieved, 
+				}
 			}
+		
+			//no status recieved, resend
+			attempts++;
 		}
 		
-		//no status recieved, resend
-		attempts++;
+		//no status recieved, client exit
+		client_exit(c_fd, "");
 	}
-		
-	//no status recieved, client exit
-	client_exit(c_fd, "");
 }
 
 void server_send_dirty(int c_fd, string msg) {
