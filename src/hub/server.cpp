@@ -173,7 +173,7 @@ void server_send(int c_fd, string msg) {
 	
 	server_send_dirty(c_fd, msg);
 	
-	/*if (fd_to_ser.count(c_fd) > 0) {//connected device client
+	/*if (fd_to_ser.count(c_fd) > 0) {//device client
 		server_wait_for_status.insert(c_fd);
 		
 		int attempts = 0;
@@ -184,7 +184,7 @@ void server_send(int c_fd, string msg) {
 		
 			while((time(NULL) - s_time) < COMM_TIMEOUT) {
 				if (server_wait_for_status.count(c_fd) == 0) {
-					return;//status recieved
+					return;//status recieved, 
 				}
 			}
 		
@@ -448,8 +448,6 @@ void client_register(int c_fd, string msg) {
 	client_connect(c_fd, msg);
 	
 	delete(json);
-	
-	//reg_devs.insert(json->serial);
 	
 	//send_status_req(c_fd, d);
 	
