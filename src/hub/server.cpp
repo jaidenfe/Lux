@@ -28,7 +28,6 @@ pthread_mutex_t mtx = PTHREAD_MUTEX_INITIALIZER;
 void server_send_dirty(int c_fd, string msg);
 void* accept_devices(void* client_addr);
 void* read_client(void* client_fd_ptr);
-void status_wait(int c_fd, string msg);
 string uuid_gen();
 
 //Client->Server
@@ -608,31 +607,6 @@ void client_unregister(int c_fd, string msg) {
 	//delete(d);
 }
 
-void status_wait(int c_fd, string msg) {
-	//wait for status	
-	server_wait_for_status.insert(c_fd);
-		
-	int attempts = 0;
-		
-	while(attempts < COMM_ATTEMPTS) {
-			
-		time_t s_time = time(NULL);//start time
-		
-		while((time(NULL) - s_time) < COMM_TIMEOUT) {
-			if (server_wait_for_status.count(c_fd) == 0) {
-				return;//status recieved
-			}
-		}
-		
-		//no status recieved, resend
-		server_send_dirty(c_fd, msg);
-		attempts++;
-	}
-		
-	//no status recieved, client exit
-	client_exit(c_fd, "");
-}
-
 void client_upd_req(int c_fd, string msg) {
 	Json* rcv_json = new Json(msg);
 	
@@ -705,8 +679,6 @@ void client_upd_req(int c_fd, string msg) {
 	server_send(devfd, to_string(UPDATE) + "|" + type);
 	
 	waiting_on_status.insert(c_fd);
-	
-	status_wait(c_fd, to_string(UPDATE) + "|" + type);
     pthread_mutex_unlock(&mtx);
 	
 	updateFile(DATA_FILE);
