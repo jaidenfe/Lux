@@ -173,7 +173,7 @@ void server_send(int c_fd, string msg) {
 	
 	server_send_dirty(c_fd, msg);
 	
-	/*if (fd_to_ser.count(c_fd) > 0) {//device client
+	if (fd_to_ser.count(c_fd) > 0) {//device client
 		server_wait_for_status.insert(c_fd);
 		
 		int attempts = 0;
@@ -184,7 +184,7 @@ void server_send(int c_fd, string msg) {
 		
 			while((time(NULL) - s_time) < COMM_TIMEOUT) {
 				if (server_wait_for_status.count(c_fd) == 0) {
-					return;//status recieved, 
+					return;//status recieved
 				}
 			}
 		
@@ -195,7 +195,7 @@ void server_send(int c_fd, string msg) {
 		
 		//no status recieved, client exit
 		client_exit(c_fd, "");
-	}*/
+	}
 }
 
 void server_send_dirty(int c_fd, string msg) {
@@ -440,6 +440,8 @@ void client_register(int c_fd, string msg) {
 	//DeviceGroup* g = new DeviceGroup("all");//TODO more device groups than just 'all'
 	
 	g->addDevice(d);
+	
+	reg_devs.insert(json->serial);
 	
 	updateFile(DATA_FILE);
 	

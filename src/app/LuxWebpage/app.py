@@ -59,7 +59,7 @@ def status_req():
             resp = resp + '"' + str(count) + '" :' + rmsg
             count = count + 1
         resp = resp + "}"
-    # resp = {1:{"serial": "xg9gt5hd7651", "data": {"group_name": "Life", "name": "Lux", "level": 10}},2: {"serial": "1567hd5tg9gx", "data": {"group_name": "Baby", "name": "LuxZ", "level": 0}},3: {"serial": "1567hx", "data": {"group_name": "Life", "name": "LuxB", "level": 0}}}
+    #resp = {1:{"serial": "xg9gt5hd7651", "data": {"group_name": "Life", "name": "Lux", "level": 10}},2: {"serial": "1567hd5tg9gx", "data": {"group_name": "Baby", "name": "LuxZ", "level": 0}},3: {"serial": "1567hx", "data": {"group_name": "Life", "name": "LuxB", "level": 0}}}
     print(resp)
     #render_template('dashboard.html')
     return resp
