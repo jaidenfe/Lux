@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify, render_template
 from flask_ask import Ask, statement, question, session
-import socket, json, logging, threading
+import socket, json, logging, threading, time
 
 sock = None#socket
 host = "127.0.0.1"#host address
@@ -30,9 +30,11 @@ app.secret_key = 'secret'
 app.config['ASK_VERIFY_REQUESTS'] = False
 # logging.getLogger("flask_ask").setLevel(logging.DEBUG)
 
+#time.sleep(10)
+
 def send_msg_10():
     global dev_connected
-    threading.Timer(10.0, send_msg_10).start()
+    threading.Timer(30.0, send_msg_10).start()
     connect()
     command = STATUS_REQUEST
     msg = '{"cmd":' + str(command) + ',"uuid":"0","serial":"0","data":{}}'
@@ -61,6 +63,7 @@ def about():
 @app.route('/dashboard.html', methods=['GET'])
 def dashboard():
     connect()
+    #send_msg_10()
     return render_template('dashboard.html')
 
 @app.route('/status_req', methods=['POST'])
@@ -124,7 +127,10 @@ def connect():
         return#don't make a second connection
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.setblocking(True)
-    sock.connect((host, port))
+    try:
+        sock.connect((host, port))
+    except Exception as e:
+        print("connection failed")
     connected = True
     print("Connection established.")
 
@@ -238,7 +244,7 @@ def turn_off_group_skill(group):
 def session_ended():
     return "{}",200
 
-send_msg_10()
+#send_msg_10()
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=80)
