@@ -32,10 +32,12 @@ app.config['ASK_VERIFY_REQUESTS'] = False
 
 #time.sleep(10)
 
-def send_msg_10():
+def send_msg_60():
     global dev_connected
-    threading.Timer(30.0, send_msg_10).start()
+    threading.Timer(60.0, send_msg_60).start()
     connect()
+    if(connected ==  False):
+        return
     command = STATUS_REQUEST
     msg = '{"cmd":' + str(command) + ',"uuid":"0","serial":"0","data":{}}'
     send(msg)#status_req
@@ -131,6 +133,8 @@ def connect():
         sock.connect((host, port))
     except Exception as e:
         print("connection failed")
+        connected  = False
+        return
     connected = True
     print("Connection established.")
 
@@ -244,7 +248,7 @@ def turn_off_group_skill(group):
 def session_ended():
     return "{}",200
 
-#send_msg_10()
+send_msg_60()
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=80)
