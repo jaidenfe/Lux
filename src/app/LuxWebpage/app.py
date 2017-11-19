@@ -1,3 +1,8 @@
+"""
+Created by Kevin Wong, James Norris
+Communication between webpage and c++ server and alexa communication
+Update: 11/19/17
+"""
 from flask import Flask, request, jsonify, render_template
 from flask_ask import Ask, statement, question, session
 import socket, json, logging, threading, time
@@ -56,17 +61,17 @@ def send_msg_60():
 @app.route('/', methods=['GET'])
 @app.route('/index.html', methods=['GET'])
 def index():
-    return render_template('index.html')
-
-@app.route('/about.html', methods=['GET'])
-def about():
-    return render_template('about.html')
-
-@app.route('/dashboard.html', methods=['GET'])
-def dashboard():
-    connect()
-    #send_msg_10()
     return render_template('dashboard.html')
+
+# @app.route('/about.html', methods=['GET'])
+# def about():
+#     return render_template('about.html')
+
+# @app.route('/dashboard.html', methods=['GET'])
+# def dashboard():
+#     connect()
+#     #send_msg_10()
+#     return render_template('dashboard.html')
 
 @app.route('/status_req', methods=['POST'])
 def status_req():
@@ -255,4 +260,3 @@ send_msg_60()
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=80)
     threaded = True
-
