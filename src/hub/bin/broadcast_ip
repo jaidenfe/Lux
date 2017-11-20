@@ -1,0 +1,23 @@
+#!/bin/bash
+
+FILE="/etc/lux/udp_client"
+BROADCAST_IP="$(ifconfig eth0 | grep -o 'broadcast.*' | awk '{print $2}')"
+MY_IP=$(myip)
+# sleep for period of time in seconds
+DELAY=5
+
+if [ -f "$FILE" ]
+then
+	echo "file exists"
+else
+	echo "creating file..."
+	cd /etc/lux/
+	gcc -o udp_client udp_client.c
+fi
+
+while :
+do
+	echo "broadcasting ip"
+	#./udp_client $MY_IP $BROADCAST_IP
+	#sleep $DELAY
+done

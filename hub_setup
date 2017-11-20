@@ -1,0 +1,138 @@
+#!/bin/bash
+
+#Update and Upgrade the system
+echo "Updating the System..."
+sudo apt-get update -y
+sudo apt-get upgrade -y
+
+# Check if in the Lux repository, if it is continue as normal
+# if not, check and install git (if needed) and then clone the
+# Lux repo and continue installation from that.
+if [ ! -d "/home/pi/Lux" ]
+then
+	GIT_VERSION="$(apt-cache policy git | grep 'Installed: ' | cut -d '-' -f1 | rev | cut -d ':' -f1 | rev | tr -d '[:space:]')"
+	echo "git version: $GIT_VERSION"
+
+	if [ $GIT_VERSION == "(none)" ]
+	then
+		sudo apt-get install git -y
+	fi
+
+	echo "Cloning the Lux repository"
+        cd /home/pi/
+        git clone https://github.com/jaidenfe/Lux.git
+fi
+
+cd /home/pi/Lux/src/hub/bin
+
+#TODO: Check the github repo version if possible?
+
+#Download dependencies
+while read line; do
+	DEP_NAME="$( echo $line | awk '{print $1}' )"
+	echo "$DEP_NAME:"
+	DEPENDENCY="$( echo $line | awk '{print $3}')"
+	if [ $DEPENDENCY == "0" ]
+	then
+		DEPENDENCY_VERSION="$(apt-cache policy $DEP_NAME | grep 'Installed: ' | cut -d '-' -f1 | rev | cut -d ':' -f1 | rev | tr -d '[:space:]')"
+	else
+		DEPENDENCY_VERSION="$(pip3 show $DEP_NAME | grep 'Version: ' | awk '{print $2}')"
+	fi
+	if [ $DEPENDENCY_VERSION != "(none)" ]
+	then
+		# Dependency is installed, check the version
+		REQ_VERSION="$( echo $line | awk '{print $2}' )"
+		echo "    Current Version: $DEPENDENCY_VERSION"
+		echo "    Required Version: $REQ_VERSION"
+		if [[ $DEPENDENCY_VERSION < $REQ_VERSION ]]
+		then
+			echo "    Current Version is behind."
+			if [ $DEPENDENCY == "0" ]
+			then
+				sudo apt-get install $DEP_NAME -y
+			else
+				sudo pip3 install $DEP_NAME
+			fi
+		else
+			echo "    $DEP_NAME is up to date"
+			echo "    done"
+			echo ""
+		fi
+	else
+		# Dependency not installed, install it!
+		echo "    Not Installed"
+		echo "    Installing $DEP_NAME..."
+
+		if [ $DEPENDENCY == "0" ]
+                then
+                        sudo apt-get install $DEP_NAME -y
+                else
+                        sudo pip3 install $DEP_NAME
+                fi
+
+		echo "    done"
+		echo ""
+	fi
+done < "dependencies.txt"
+
+#create the 'run' command for the Lux Hub
+sudo cp run /bin
+sudo chmod +x /bin/run
+
+#create the 'myip' command to display ip address
+sudo cp myip /bin
+sudo chmod +x /bin/myip
+
+#create 'show_ip' command to display ip address on LCD
+sudo cp show_ip /bin
+sudo chmod +x /bin/show_ip
+
+#create 'broadcast_ip' command to display the ip address for UDP broadcasting
+sudo cp broadcast_ip /bin
+sudo chmod +x /bin/broadcast_ip
+
+#create /etc/lux directory and put udp broadcast code there
+if [ ! -d "/etc/lux" ]
+then
+	sudo mkdir /etc/lux
+	sudo cp udp_client.c /etc/lux
+fi
+cd /etc/lux
+gcc -o udp_client udp_client.c
+cd -
+
+# Setup run script to execute on startup
+touch $(pwd)/rc.local
+
+#read through /etc/rc.local
+echo "Setting up autorun script..."
+while read line; do
+        if [ "$line" == "exit 0" ]
+        then
+                echo "# Lux Hub Autorun Configuration" >> $(pwd)/rc.local
+                echo "run" >> $(pwd)/rc.local
+                echo "" >> $(pwd)/rc.local
+                echo "$line" >> $(pwd)/rc.local
+        else
+                if [ "$line" == "# Lux Hub Autorun Configuration" ]
+                then
+                        rm $(pwd)/rc.local
+
+			echo ""
+			echo "Lux Hub Setup Complete"
+			echo ""
+
+                        exit 0
+                else
+                        echo "$line" >> $(pwd)/rc.local
+                fi
+        fi
+done < "/etc/rc.local"
+
+sudo rm /etc/rc.local
+sudo mv $(pwd)/rc.local /etc/
+sudo chmod +x /etc/rc.local
+
+echo ""
+echo "Lux Hub Setup Complete"
+echo ""
