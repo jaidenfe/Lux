@@ -389,7 +389,8 @@ void client_register(int c_fd, string msg) {
 	pthread_mutex_lock(&mtx);
 
     //cout << devip << " reg at " << json->serial << endl;
-	string default_name = strcat("DEVICE_", to_string(devnum++).c_str());
+	int dnum = devnum++;
+	string default_name = "DEVICE_" + to_string(dnum);
 	Device* d = new Device(devip, default_name, json->serial);//TODO rename by web client
 
 	//d->setLightLevel(atoi(json->data["level"].c_str()));
