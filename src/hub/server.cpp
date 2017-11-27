@@ -28,6 +28,7 @@ pthread_mutex_t mtx = PTHREAD_MUTEX_INITIALIZER;
 void server_send_dirty(int c_fd, string msg);
 void* accept_devices(void* client_addr);
 void* read_client(void* client_fd_ptr);
+void printDevs();
 string uuid_gen();
 
 //Client->Server
@@ -385,12 +386,9 @@ void client_register(int c_fd, string msg) {
 	*/
 
 	string devip = client_ip_by_fd(c_fd);
-	
-	pthread_mutex_lock(&mtx);
 
     //cout << devip << " reg at " << json->serial << endl;
-	int dnum = devnum++;
-	string default_name = "DEVICE_" + to_string(dnum);
+	string default_name = "DEVICE_" + to_string(devnum++);
 	Device* d = new Device(devip, default_name, json->serial);//TODO rename by web client
 
 	//d->setLightLevel(atoi(json->data["level"].c_str()));
@@ -422,10 +420,10 @@ void client_register(int c_fd, string msg) {
 	g->addDevice(d);
 
 	reg_devs.insert(json->serial);
+	
+	printDevs();
 
 	updateFile(DATA_FILE);
-	
-	pthread_mutex_unlock(&mtx);
 
 	client_connect(c_fd, msg);
 
@@ -450,7 +448,6 @@ void client_connect(int c_fd, string msg) {
 	}
 	*/
 
-	pthread_mutex_lock(&mtx);
 	//test all connections to make sure none have dropped unexpectedly
 	for (map<int, string>::iterator it = fd_to_ser.begin(); it != fd_to_ser.end(); ++it) {
 		int fd = it->first;
@@ -461,6 +458,7 @@ void client_connect(int c_fd, string msg) {
 		}
 
 		server_send(fd, to_string(TEST));
+
 	}
 
 	if (reg_devs.count(serial) == 0) {//not registered
@@ -470,6 +468,7 @@ void client_connect(int c_fd, string msg) {
 		return;
 	}
 
+	pthread_mutex_lock(&mtx);
     fd_to_ser.insert(pair<int, string>(c_fd, serial));
     ser_to_fd.insert(pair<string, int>(serial, c_fd));
 	reg_devs.insert(serial);
@@ -741,6 +740,32 @@ void client_status_req(int c_fd, string msg) {
 	server_send(c_fd, STAT_REQ_DELIM);
 
 	//delete(rcv_json);
+}
+
+void printDevs() {
+	pthread_mutex_lock(&mtx);
+
+	for (map<string, DeviceGroup*>::iterator it = grps_n.begin(); it != grps_n.end(); ++it) {
+		string g_name = it->first;
+		DeviceGroup* g = it->second;
+
+        //cout << "GRP" << endl;
+
+		list<Device*> devs = g->getDevices();
+
+		//send a status command for each device
+		for (list<Device*>::iterator dit = devs.begin(); dit != devs.end(); ++dit) {
+			Device* d = *dit;
+			
+			if (ser_to_fd.count(d->getSerial()) == 0) {
+				continue;
+			}
+
+            cout << "DEV: " << d->getName() << endl;
+		}
+	}
+	
+	pthread_mutex_unlock(&mtx);
 }
 
 string uuid_gen() {
