@@ -577,9 +577,9 @@ void client_unregister(int c_fd, string msg) {
 		return;
 	}
 
-	DeviceGroup g = byGroupName(g_name);
+	//DeviceGroup g = byGroupName(g_name);
 
-	g.removeDevice(d);
+	g->removeDevice(d);
 
 	reg_devs.erase(serial);
 
@@ -717,7 +717,7 @@ void client_status_req(int c_fd, string msg) {
 		string g_name = it->first;
 		DeviceGroup* g = it->second;
 
-        //cout << "GRP" << endl;
+        cout << "GRP: " << g_name << endl;
 
 		list<Device*> devs = g->getDevices();
 

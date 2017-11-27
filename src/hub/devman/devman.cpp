@@ -166,7 +166,7 @@ DeviceGroup byGroupName(string name) {
 	if (grps_n.count(name) == 0) {//no group found
 		return DeviceGroup("NULL");//TODO return pointer
 	}
-	return *grps_n[name];
+	return *(grps_n[name]);
 }
 
 void updateFile(string filename) {
