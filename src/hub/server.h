@@ -21,6 +21,8 @@
 #define REG_KEY "e7Cv2ro_8K"
 #define DATA_FILE "../devman/devices.dat"
 #define STAT_REQ_DELIM "STOP"
+#define COMM_ATTEMPTS 3
+#define COMM_TIMEOUT 3
 
 using namespace std;
 
