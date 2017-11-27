@@ -46,14 +46,15 @@ def send_msg_60():
     command = STATUS_REQUEST
     msg = '{"cmd":' + str(command) + ',"uuid":"0","serial":"0","data":{}}'
     send(msg)#status_req
+    print("msg_60 sent")
     deviceDict={}
     while (True):
         rmsg = read().decode()
-        # print(rmsg)
+        #print(rmsg)
         if (rmsg == status_req_delim):
             break
         jsonMSG = json.loads(rmsg)
-        # print(jsonMSG)
+        print(jsonMSG)
         deviceDict[jsonMSG["data"].get("name")] = jsonMSG.get("serial")
     dev_connected = deviceDict
     print(dev_connected)
@@ -256,8 +257,9 @@ def turn_off_group_skill(group):
 def session_ended():
     return "{}",200
 
-send_msg_60()
+t = threading.Thread(target=send_msg_60)
+t.start()
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=80)
-    threaded = True
+    #threaded = True
