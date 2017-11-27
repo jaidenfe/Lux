@@ -597,9 +597,9 @@ void status_wait(int c_fd, string msg) {
 		//send
 		server_send_dirty(c_fd, msg);
 
-		time_t s_time = time(NULL);//start time
+		time_t s_time = clock();//start time
 
-		while((time(NULL) - s_time) < COMM_TIMEOUT) {
+		while(double(clock() - s_time) / CLOCKS_PER_SEC < COMM_TIMEOUT) {
 			if (server_wait_on_response.count(c_fd) == 0) {
 				return;//status recieved,
 			}
