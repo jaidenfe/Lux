@@ -385,9 +385,11 @@ void client_register(int c_fd, string msg) {
 	*/
 
 	string devip = client_ip_by_fd(c_fd);
+	
+	pthread_mutex_lock(&mtx);
 
     //cout << devip << " reg at " << json->serial << endl;
-	string default_name = "DEVICE_" + to_string(devnum++);
+	string default_name = strcat("DEVICE_", to_string(devnum++));
 	Device* d = new Device(devip, default_name, json->serial);//TODO rename by web client
 
 	//d->setLightLevel(atoi(json->data["level"].c_str()));
@@ -421,6 +423,8 @@ void client_register(int c_fd, string msg) {
 	reg_devs.insert(json->serial);
 
 	updateFile(DATA_FILE);
+	
+	pthread_mutex_unlock(&mtx);
 
 	client_connect(c_fd, msg);
 
@@ -445,6 +449,7 @@ void client_connect(int c_fd, string msg) {
 	}
 	*/
 
+	pthread_mutex_lock(&mtx);
 	//test all connections to make sure none have dropped unexpectedly
 	for (map<int, string>::iterator it = fd_to_ser.begin(); it != fd_to_ser.end(); ++it) {
 		int fd = it->first;
@@ -455,7 +460,6 @@ void client_connect(int c_fd, string msg) {
 		}
 
 		server_send(fd, to_string(TEST));
-
 	}
 
 	if (reg_devs.count(serial) == 0) {//not registered
@@ -465,7 +469,6 @@ void client_connect(int c_fd, string msg) {
 		return;
 	}
 
-	pthread_mutex_lock(&mtx);
     fd_to_ser.insert(pair<int, string>(c_fd, serial));
     ser_to_fd.insert(pair<string, int>(serial, c_fd));
 	reg_devs.insert(serial);
