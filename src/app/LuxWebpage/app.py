@@ -61,6 +61,7 @@ def send_msg_60():
 @app.route('/', methods=['GET'])
 @app.route('/index.html', methods=['GET'])
 def index():
+    connect()
     return render_template('dashboard.html')
 
 # @app.route('/about.html', methods=['GET'])

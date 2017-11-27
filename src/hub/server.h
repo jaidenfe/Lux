@@ -22,7 +22,7 @@
 #define DATA_FILE "../devman/devices.dat"
 #define STAT_REQ_DELIM "STOP"
 #define COMM_ATTEMPTS 3
-#define COMM_TIMEOUT .2
+#define COMM_TIMEOUT 3
 
 using namespace std;
 

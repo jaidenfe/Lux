@@ -597,9 +597,9 @@ void status_wait(int c_fd, string msg) {
 		//send
 		server_send_dirty(c_fd, msg);
 
-		time_t s_time = clock();//start time
+		time_t s_time = time(NULL);//start time
 
-		while(double(clock() - s_time) / CLOCKS_PER_SEC < COMM_TIMEOUT) {
+		while((time(NULL) - s_time) < COMM_TIMEOUT) {
 			if (server_wait_on_response.count(c_fd) == 0) {
 				return;//status recieved,
 			}
@@ -707,6 +707,8 @@ void client_status_req(int c_fd, string msg) {
 	*/
 
     //cout << "STATUS REQ" << endl;
+	
+	pthread_mutex_lock(&mtx);
 
 	for (map<string, DeviceGroup*>::iterator it = grps_n.begin(); it != grps_n.end(); ++it) {
 		string g_name = it->first;
@@ -729,6 +731,8 @@ void client_status_req(int c_fd, string msg) {
 			send_status(c_fd, d, g_name);
 		}
 	}
+	
+	pthread_mutex_unlock(&mtx);
 
 	server_send(c_fd, STAT_REQ_DELIM);
 
