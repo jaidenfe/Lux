@@ -1,6 +1,6 @@
 #include "server.h"
 
-int sockfd;
+int sockfd, devnum = 0;
 bool running = false;
 
 cmd_map server_commands;
@@ -258,11 +258,11 @@ void* read_client(void* c_fd_p) {
 
 		int cmd = Json(s_msg).cmd;//grab command type from JSON
 
-    if (server_commands.count(cmd) == 0) {
+		if (server_commands.count(cmd) == 0) {
             cerr << "Client " << c_fd << " issued unknown command \"" << cmd << "\"." << endl;
             client_exit(c_fd, "");
             return NULL;
-    }
+		}
 
 		pthread_mutex_lock(&mtx);
 		map<int, cmd_func*>::iterator it = server_commands.find(cmd);
@@ -384,11 +384,11 @@ void client_register(int c_fd, string msg) {
 	}
 	*/
 
-  string devip = client_ip_by_fd(c_fd);
+	string devip = client_ip_by_fd(c_fd);
 
     //cout << devip << " reg at " << json->serial << endl;
-	string default_name = "DEVICE-" + json->serial;
-	Device* d = new Device(devip, default_name, json->serial);//NO NAME, SET BY WEB CLIENT
+	string default_name = "DEVICE_" + devnum++;
+	Device* d = new Device(devip, default_name, json->serial);//TODO rename by web client
 
 	//d->setLightLevel(atoi(json->data["level"].c_str()));
 	d->set_f_vers(json->data["firmware_version"]);
@@ -719,6 +719,10 @@ void client_status_req(int c_fd, string msg) {
 		//send a status command for each device
 		for (list<Device*>::iterator dit = devs.begin(); dit != devs.end(); ++dit) {
 			Device* d = *dit;
+			
+			if (ser_to_fd.count(d->getSerial()) == 0) {
+				continue;
+			}
 
             //cout << "DEV" << endl;
 
