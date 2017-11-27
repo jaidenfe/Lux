@@ -89,6 +89,8 @@ DeviceGroup::~DeviceGroup(){}
 void DeviceGroup::addDevice(Device* l) {
 	g_devs.push_back(l);
 	devices++;
+	
+	cout << "Added device: " << l->getName() << endl;
 }
 
 bool DeviceGroup::removeDevice(Device* l) {
@@ -97,9 +99,13 @@ bool DeviceGroup::removeDevice(Device* l) {
 	}
 	g_devs.remove(l);
 	
+	string name = l->getName();
+	
 	delete l;
 	
 	devices--;
+	
+	cout << "Remove device: " << name << endl;
 	return true;
 }
 
