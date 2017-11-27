@@ -273,7 +273,12 @@ bool loadFile(string filename) {
 			
 			grp->addDevice(dev);
 		} else {//devicegroup
-			grp = new DeviceGroup(trim(line.substr(0, line.find("("))));
+			string g_name = trim(line.substr(0, line.find("(")));
+			if (grps_n.count(g_name) == 0) {
+				grp = new DeviceGroup(g_name);
+			} else {
+				grp = grps_n[g_name];
+			}
 		}
 	}
 	

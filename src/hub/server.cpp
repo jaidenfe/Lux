@@ -60,14 +60,11 @@ void server_start() {
 	server_commands[UNREGISTER] = client_unregister;
 	server_commands[UPDATE_REQUEST] = client_upd_req;
 	server_commands[STATUS_REQUEST] = client_status_req;
+	
+	g = new DeviceGroup("all");
 
 	//clearFile(DATA_FILE);
 	loadFile(DATA_FILE);
-
-	g = new DeviceGroup("all");
-	// TODO: Instantiate all other groups
-
-	//TODO print server IP on startup
 
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
