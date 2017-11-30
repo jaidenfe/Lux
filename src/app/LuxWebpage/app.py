@@ -181,9 +181,9 @@ def start_skill():
 @ask.intent("OnIntent")
 def turn_on_skill(device):
     alexa_msg = device
-    #device = device.upper()
-    #device = device.replace(" ","_")
-    device = "DEVICE-L003000000SS"
+    device = device.upper()
+    device = device.replace(" ","_")
+    #device = "DEVICE-L003000000SS"
     if device in dev_connected:
         # devName = device.replace(" ","_")
         server_msg = '{"cmd":4,"uuid":"0","serial":"' + dev_connected[device] + '","data":{"name":"'+device+'","level":"10","group_name":"all"}}'
@@ -200,9 +200,9 @@ def turn_on_skill(device):
 @ask.intent("OffIntent")
 def turn_off_skill(device):
     alexa_msg = device
-    device = "DEVICE-L003000000SS"
-   # device = device.upper()
-   # device = device.replace(" ","_")
+    #device = "DEVICE-L003000000SS"
+    device = device.upper()
+    device = device.replace(" ","_")
     if device in dev_connected:
         # devName = device.replace(" ","_")
         server_msg = '{"cmd":4,"uuid":"0","serial":"' + dev_connected[device] + '","data":{"name":"'+device+'","level":"0","group_name":"all"}}'
