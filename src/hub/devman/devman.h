@@ -8,6 +8,7 @@
 #include <map>
 #include <list>
 #include <vector>
+#include <set>
 
 using namespace std;
 
@@ -59,6 +60,9 @@ bool isValidGroupName(string);//same return policy
 bool isValidVersion(string);//same
 
 DeviceGroup byGroupName(string);
+
+typedef void dev_func(DeviceGroup* g, Device* d, void* aux);
+void device_for_each(dev_func* func, bool unique, void* aux);
 
 void updateFile(string);//must be called to update the devices file with current data
 bool clearFile(string);
