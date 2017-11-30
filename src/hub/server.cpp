@@ -1,6 +1,6 @@
 #include "server.h"
 
-int sockfd;
+int sockfd, devnum = 0;
 bool running = false;
 
 cmd_map server_commands;
@@ -42,6 +42,10 @@ void client_unregister(int client_fd, string message);
 void client_upd_req(int client_fd, string message);
 void client_status_req(int client_fd, string message);
 
+void increment_devnum(DeviceGroup* g, Device* d, void* aux) {
+	devnum++;
+}
+
 void server_start() {
 	//Client->Server
 	//server_commands[DISCONNECT_REQUEST] = client_exit;
@@ -59,14 +63,13 @@ void server_start() {
 	server_commands[UNREGISTER] = client_unregister;
 	server_commands[UPDATE_REQUEST] = client_upd_req;
 	server_commands[STATUS_REQUEST] = client_status_req;
+	
+	g = new DeviceGroup("all");
 
 	//clearFile(DATA_FILE);
 	loadFile(DATA_FILE);
-
-	g = new DeviceGroup("all");
-	// TODO: Instantiate all other groups
-
-	//TODO print server IP on startup
+	
+	device_for_each(increment_devnum, true, NULL);
 
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -101,9 +104,7 @@ void server_start() {
 	}
 }
 
-
 //BEGIN GETTERS
-
 int server_connections() {
 	pthread_mutex_lock(&mtx);
 	int size = by_ip.size();
@@ -258,11 +259,11 @@ void* read_client(void* c_fd_p) {
 
 		int cmd = Json(s_msg).cmd;//grab command type from JSON
 
-    if (server_commands.count(cmd) == 0) {
+		if (server_commands.count(cmd) == 0) {
             cerr << "Client " << c_fd << " issued unknown command \"" << cmd << "\"." << endl;
             client_exit(c_fd, "");
             return NULL;
-    }
+		}
 
 		pthread_mutex_lock(&mtx);
 		map<int, cmd_func*>::iterator it = server_commands.find(cmd);
@@ -341,21 +342,7 @@ void client_exit(int c_fd, string msg) {
 }
 
 void client_test(int c_fd, string msg) {
-	/*
-	Json* json = new Json(msg);
-
-	//the device does not have to be registered, as this is a harmless debugging tool
-
-	string succ = json->data["message"];
-
-	server_send(c_fd, succ);//TO DEVICE
-	*/
-
-	string succ = "SUCCESS";
-
-	server_send(c_fd, succ);
-
-	//delete(json);
+	server_send(c_fd, msg);
 }
 
 void client_register(int c_fd, string msg) {
@@ -384,11 +371,11 @@ void client_register(int c_fd, string msg) {
 	}
 	*/
 
-  string devip = client_ip_by_fd(c_fd);
+	string devip = client_ip_by_fd(c_fd);
 
     //cout << devip << " reg at " << json->serial << endl;
-	string default_name = "DEVICE-" + json->serial;
-	Device* d = new Device(devip, default_name, json->serial);//NO NAME, SET BY WEB CLIENT
+	string default_name = "DEVICE_" + to_string(devnum++);
+	Device* d = new Device(devip, default_name, json->serial);//TODO rename by web client
 
 	//d->setLightLevel(atoi(json->data["level"].c_str()));
 	d->set_f_vers(json->data["firmware_version"]);
@@ -574,9 +561,9 @@ void client_unregister(int c_fd, string msg) {
 		return;
 	}
 
-	DeviceGroup g = byGroupName(g_name);
+	//DeviceGroup g = byGroupName(g_name);
 
-	g.removeDevice(d);
+	g->removeDevice(d);
 
 	reg_devs.erase(serial);
 
@@ -601,7 +588,7 @@ void status_wait(int c_fd, string msg) {
 
 		while((time(NULL) - s_time) < COMM_TIMEOUT) {
 			if (server_wait_on_response.count(c_fd) == 0) {
-				return;//status recieved,
+				return;//status recieved
 			}
 		}
 
@@ -695,40 +682,22 @@ void client_upd_req(int c_fd, string msg) {
 	delete(snd_json);
 }
 
-void client_status_req(int c_fd, string msg) {
-	/*
-	Json* rcv_json = new Json(msg);
-
-	if (reg_devs.count(rcv_json->serial) == 0) {
-		cerr << "Unregistered client " << c_fd << " requested the status of the system." << endl;
-		delete(rcv_json);
+void send_status_connected(DeviceGroup* g, Device* d, void* aux) {
+	if (ser_to_fd.count(d->getSerial()) == 0) {
 		return;
 	}
-	*/
+	
+	int c_fd = *(int*) aux;
 
-    //cout << "STATUS REQ" << endl;
+	send_status(c_fd, d, g->getName());
+}
 
-	for (map<string, DeviceGroup*>::iterator it = grps_n.begin(); it != grps_n.end(); ++it) {
-		string g_name = it->first;
-		DeviceGroup* g = it->second;
-
-        //cout << "GRP" << endl;
-
-		list<Device*> devs = g->getDevices();
-
-		//send a status command for each device
-		for (list<Device*>::iterator dit = devs.begin(); dit != devs.end(); ++dit) {
-			Device* d = *dit;
-
-            //cout << "DEV" << endl;
-
-			send_status(c_fd, d, g_name);
-		}
-	}
+void client_status_req(int c_fd, string msg) {
+	pthread_mutex_lock(&mtx);
+	device_for_each(send_status_connected, false, &c_fd);
+	pthread_mutex_unlock(&mtx);
 
 	server_send(c_fd, STAT_REQ_DELIM);
-
-	//delete(rcv_json);
 }
 
 string uuid_gen() {

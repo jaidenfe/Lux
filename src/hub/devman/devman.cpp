@@ -87,8 +87,16 @@ DeviceGroup::DeviceGroup(string name) {
 DeviceGroup::~DeviceGroup(){}
 
 void DeviceGroup::addDevice(Device* l) {
+	for (list<Device*>::iterator it = g_devs.begin(); it != g_devs.end(); ++it) {
+		if ((**it) == *l) {
+			return;//already in the group devices
+		}
+	}
+	
 	g_devs.push_back(l);
 	devices++;
+	
+	cout << "Added device: " << l->getName() << endl;
 }
 
 bool DeviceGroup::removeDevice(Device* l) {
@@ -97,9 +105,13 @@ bool DeviceGroup::removeDevice(Device* l) {
 	}
 	g_devs.remove(l);
 	
+	string name = l->getName();
+	
 	delete l;
 	
 	devices--;
+	
+	cout << "Remove device: " << name << endl;
 	return true;
 }
 
@@ -147,12 +159,12 @@ bool legalChars(string name, string legal) {
 //END UTILITY FUNCTIONS
 
 bool isValidName(string name) {
-	string legal = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890 ";
+	string legal = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_ ";
 	return isProperLength(name) && legalChars(name, legal) && name.compare("NULL") != 0;//valid name
 }
 
 bool isValidGroupName(string name) {
-	string legal = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890 ";
+	string legal = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_ ";
 	return isProperLength(name) && legalChars(name, legal) && name.compare("NULL") != 0;
 	//valid name
 }
@@ -166,7 +178,29 @@ DeviceGroup byGroupName(string name) {
 	if (grps_n.count(name) == 0) {//no group found
 		return DeviceGroup("NULL");//TODO return pointer
 	}
-	return *grps_n[name];
+	return *(grps_n[name]);
+}
+
+void device_for_each(dev_func* func, bool unique, void* aux) {
+	set<Device*> checked;
+	
+	for (map<string, DeviceGroup*>::iterator it = grps_n.begin(); it != grps_n.end(); ++it) {
+		DeviceGroup* g = it->second;
+
+		list<Device*> devs = g->getDevices();
+
+		for (list<Device*>::iterator dit = devs.begin(); dit != devs.end(); ++dit) {
+			Device* d = *dit;
+			
+			if (unique && checked.count(d) > 0) {
+				continue;
+			}
+			
+			checked.insert(d);
+			
+			func(g, d, aux);
+		}
+	}
 }
 
 void updateFile(string filename) {
@@ -223,7 +257,6 @@ vector<string> split(string line, char delimiter){
 //END UTILITY FUNCTION
 
 bool clearFile(string filename){
-
 	ifstream file(filename, ios::out|ios::trunc);
 	if(!file.is_open()){
 		return false;
@@ -267,7 +300,12 @@ bool loadFile(string filename) {
 			
 			grp->addDevice(dev);
 		} else {//devicegroup
-			grp = new DeviceGroup(trim(line.substr(0, line.find("("))));
+			string g_name = trim(line.substr(0, line.find("(")));
+			if (grps_n.count(g_name) == 0) {
+				grp = new DeviceGroup(g_name);
+			} else {
+				grp = grps_n[g_name];
+			}
 		}
 	}
 	
