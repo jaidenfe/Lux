@@ -88,7 +88,7 @@ DeviceGroup::~DeviceGroup(){}
 
 void DeviceGroup::addDevice(Device* l) {
 	for (list<Device*>::iterator it = g_devs.begin(); it != g_devs.end(); ++it) {
-		if ((*it) == *l) {
+		if ((**it) == *l) {
 			return;//already in the group devices
 		}
 	}
