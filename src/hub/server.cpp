@@ -43,6 +43,8 @@ void client_upd_req(int client_fd, string message);
 void client_status_req(int client_fd, string message);
 
 void increment_devnum(DeviceGroup* g, Device* d, void* aux) {
+	reg_devs.insert(d->getSerial());
+	
 	devnum++;
 }
 
@@ -455,7 +457,7 @@ void client_connect(int c_fd, string msg) {
 	pthread_mutex_lock(&mtx);
     fd_to_ser.insert(pair<int, string>(c_fd, serial));
     ser_to_fd.insert(pair<string, int>(serial, c_fd));
-	reg_devs.insert(serial);
+	//reg_devs.insert(serial);
 	pthread_mutex_unlock(&mtx);
 
 	Device* d = bySerial(serial);
