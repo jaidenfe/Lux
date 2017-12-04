@@ -206,7 +206,7 @@ def turn_off_skill(device):
     device = device.replace(" ","_")
     for group, device_n in dev_connected.items():
         if device in device_n.keys():
-            server_msg = '{"cmd":4,"uuid":"0","serial":"' + dev_connected[group][device] + '","data":{"name":"'+device+'","level":"10","group_name":"'+group+'"}}'
+            server_msg = '{"cmd":4,"uuid":"0","serial":"' + dev_connected[group][device] + '","data":{"name":"'+device+'","level":"0","group_name":"'+group+'"}}'
             print(server_msg)
             send(server_msg)
             msg = alexa_msg + " is OFF"

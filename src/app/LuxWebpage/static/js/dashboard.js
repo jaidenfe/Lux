@@ -2,7 +2,7 @@
  * Created by Xuanyu on 11/8/2017.
  */
 
-    // setInterval("loading_page()", 5000);
+setInterval("loading_page()", 5000);
 var request_for_page = {"cmd": "2"};
 
 var deviceState = {};
