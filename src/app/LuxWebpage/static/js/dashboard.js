@@ -25,6 +25,17 @@ function sendRequest(upd, data, type) {
                 if (myDevices.data.level == 10) {
                     deviceState[myDevices.serial] = true;
                     document.getElementById(myDevices.serial + "state").checked = true;
+                    var valueG = true;
+                    var groupD = document.getElementById(myDevices.data.group_name).getElementsByTagName("ul")[0].getElementsByTagName("li");
+                    for (var i = 0; i < groupD.length; i++) {
+                        var deviceID = groupD[i].id+"state";
+                        // alert(deviceID);
+                        if(document.getElementById(deviceID).checked == false){
+                          valueG = false;
+                          break;
+                        }
+                    }
+                    document.getElementById(myDevices.data.group_name + "state").checked = valueG;
                 }
                 else {
                     deviceState[myDevices.serial] = false;
