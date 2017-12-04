@@ -55,7 +55,9 @@ def send_msg_60():
             break
         jsonMSG = json.loads(rmsg)
         print(jsonMSG)
-        deviceDict[jsonMSG["data"].get("name")] = jsonMSG.get("serial")
+        if jsonMSG["data"].get("group_name") not in deviceDict:
+            deviceDict[jsonMSG["data"].get("group_name")] = {}
+        deviceDict[jsonMSG["data"].get("group_name")][jsonMSG["data"].get("name")] = jsonMSG.get("serial")
     dev_connected = deviceDict
     print(dev_connected)
 
@@ -183,16 +185,16 @@ def turn_on_skill(device):
     alexa_msg = device
     device = device.upper()
     device = device.replace(" ","_")
-    #device = "DEVICE-L003000000SS"
-    if device in dev_connected:
-        # devName = device.replace(" ","_")
-        server_msg = '{"cmd":4,"uuid":"0","serial":"' + dev_connected[device] + '","data":{"name":"'+device+'","level":"10","group_name":"all"}}'
-        print(server_msg)
-        send(server_msg)
-        msg = alexa_msg + " is ON"
-        rcvd = read()
-    else:
-        msg = "Sorry I don't see the device you specify, please try agin."
+    for group, device_n in dev_connected.items():
+        if device in device_n.keys():
+            server_msg = '{"cmd":4,"uuid":"0","serial":"' + dev_connected[group][device] + '","data":{"name":"'+device+'","level":"10","group_name":"'+group+'"}}'
+            print(server_msg)
+            send(server_msg)
+            msg = alexa_msg + " is ON"
+            rcvd = read()
+            break;
+        else:
+            msg = "Sorry I don't see the device you specify, please try agin."
     RPmsg = "Session will end in 8 secs.... If you need help say help"
     print(msg)
     return question(msg).reprompt(RPmsg)
@@ -200,18 +202,18 @@ def turn_on_skill(device):
 @ask.intent("OffIntent")
 def turn_off_skill(device):
     alexa_msg = device
-    #device = "DEVICE-L003000000SS"
     device = device.upper()
     device = device.replace(" ","_")
-    if device in dev_connected:
-        # devName = device.replace(" ","_")
-        server_msg = '{"cmd":4,"uuid":"0","serial":"' + dev_connected[device] + '","data":{"name":"'+device+'","level":"0","group_name":"all"}}'
-        print(server_msg)
-        send(server_msg)
-        msg = alexa_msg + " is OFF"
-        rcvd = read()
-    else:
-        msg = "Sorry I don't see the device you specify, please try agin."
+    for group, device_n in dev_connected.items():
+        if device in device_n.keys():
+            server_msg = '{"cmd":4,"uuid":"0","serial":"' + dev_connected[group][device] + '","data":{"name":"'+device+'","level":"10","group_name":"'+group+'"}}'
+            print(server_msg)
+            send(server_msg)
+            msg = alexa_msg + " is OFF"
+            rcvd = read()
+            break;
+        else:
+            msg = "Sorry I don't see the device you specify, please try agin."
     RPmsg = "Session will end in 8 secs.... If you need help say help"
     print(msg)
     return question(msg).reprompt(RPmsg)
@@ -225,9 +227,9 @@ def help_command():
 
 @ask.intent("OnGroupIntent")
 def turn_on_group_skill(group):
-    if(group == "all"):
-        for device in dev_connected:
-            server_msg = '{"cmd":4,"uuid":"0","serial":"' + dev_connected[device] + '","data":{"name":"'+device+'","level":"10","group_name":"all"}}'
+    if group in dev_connected:
+        for device in dev_connected[group]:
+            server_msg = '{"cmd":4,"uuid":"0","serial":"' + dev_connected[group][device] + '","data":{"name":"'+device+'","level":"10","group_name":"'+group+'"}}'
             print(server_msg)
             send(server_msg)
             rcvd = read()
@@ -240,9 +242,9 @@ def turn_on_group_skill(group):
 
 @ask.intent("OffGroupIntent")
 def turn_off_group_skill(group):
-    if(group == "all"):
-        for device in dev_connected:
-            server_msg = '{"cmd":4,"uuid":"0","serial":"' + dev_connected[device] + '","data":{"name":"'+device+'","level":"0","group_name":"all"}}'
+    if group in dev_connected:
+        for device in dev_connected[group]:
+            server_msg = '{"cmd":4,"uuid":"0","serial":"' + dev_connected[group][device] + '","data":{"name":"'+device+'","level":"0","group_name":"'+group+'"}}'
             print(server_msg)
             send(server_msg)
             rcvd = read()
@@ -262,4 +264,4 @@ t.start()
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=80)
-    #threaded = True
+    threaded = True
