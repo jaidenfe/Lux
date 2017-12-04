@@ -2,7 +2,7 @@
  * Created by Xuanyu on 11/8/2017.
  */
 
-setInterval("loading_page()", 5000);
+// setInterval("loading_page()", 5000);
 var request_for_page = {"cmd": "2"};
 
 var deviceState = {};
@@ -22,7 +22,6 @@ function sendRequest(upd, data, type) {
             else {
                 var resp = xhttp.responseText;
                 myDevices = JSON.parse(resp);
-
                 if (myDevices.data.level == 10) {
                     deviceState[myDevices.serial] = true;
                     document.getElementById(myDevices.serial + "state").checked = true;
@@ -30,6 +29,7 @@ function sendRequest(upd, data, type) {
                 else {
                     deviceState[myDevices.serial] = false;
                     document.getElementById(myDevices.serial + "state").checked = false;
+                    document.getElementById(myDevices.data.group_name + "state").checked = false;
                 }
                 var devicePictureState = checkOnOrOffState(deviceState[myDevices.serial]);
 
