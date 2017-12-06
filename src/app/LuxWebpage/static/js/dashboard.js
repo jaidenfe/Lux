@@ -7,17 +7,45 @@ var request_for_page = {"cmd": "2"};
 
 var deviceState = {};
 function loading_page() {
-    sendRequest(true, request_for_page, "/status_req");
+    sendRequest(true, request_for_page, "/status_req",0);
 }
 
-function sendRequest(upd, data, type) {
+function sendRequest(upd, data, type,check) {
     var xhttp = new XMLHttpRequest();
     xhttp.open("POST", type, true);
     xhttp.setRequestHeader("Content-type", "application/json");
     xhttp.onreadystatechange = function () {
         if (this.readyState == 4 && this.status == 200) {
             if (upd) {
+              if(check == 0){
                 onPageLoad(this);
+              }
+              else{
+                var resp = xhttp.responseText;
+                myDevices = JSON.parse(resp);
+                var groupStatus = {};
+                for(x in myDevices){
+                  if(!(myDevices[x].data.group_name in groupStatus)){
+                    groupStatus[myDevices[x].data.group_name] = true;
+                  }
+                  if(myDevices[x].data.level == 10){
+                    document.getElementById(myDevices[x].serial + "state").checked = true;
+                    deviceState[myDevices[x].serial] = true;
+                    var devicePictureState = checkOnOrOffState(deviceState[myDevices[x].serial]);
+                    document.getElementById(myDevices[x].serial).getElementsByClassName("Device_img")[0].src = devicePictureState.src;
+                  }
+                  else{
+                    document.getElementById(myDevices[x].serial + "state").checked = false;
+                    deviceState[myDevices[x].serial] = false;
+                    var devicePictureState = checkOnOrOffState(deviceState[myDevices[x].serial]);
+                    document.getElementById(myDevices[x].serial).getElementsByClassName("Device_img")[0].src = devicePictureState.src;
+                    groupStatus[myDevices[x].data.group_name] = false;
+                  }
+                }
+                for(x in groupStatus){
+                  document.getElementById(x+"state").checked = groupStatus[x];
+                }
+              }
             }
             else {
                 var resp = xhttp.responseText;
@@ -25,23 +53,23 @@ function sendRequest(upd, data, type) {
                 if (myDevices.data.level == 10) {
                     deviceState[myDevices.serial] = true;
                     document.getElementById(myDevices.serial + "state").checked = true;
-                    var valueG = true;
-                    var groupD = document.getElementById(myDevices.data.group_name).getElementsByTagName("ul")[0].getElementsByTagName("li");
-                    for (var i = 0; i < groupD.length; i++) {
-                        var deviceID = groupD[i].id+"state";
-                        // alert(deviceID);
-                        if(document.getElementById(deviceID).checked == false){
-                          valueG = false;
-                          break;
-                        }
-                    }
-                    document.getElementById(myDevices.data.group_name + "state").checked = valueG;
                 }
                 else {
                     deviceState[myDevices.serial] = false;
                     document.getElementById(myDevices.serial + "state").checked = false;
                     document.getElementById(myDevices.data.group_name + "state").checked = false;
                 }
+                var valueG = true;
+                var groupD = document.getElementById(myDevices.data.group_name).getElementsByTagName("ul")[0].getElementsByTagName("li");
+                for (var i = 0; i < groupD.length; i++) {
+                    var deviceID = groupD[i].id+"state";
+                    // alert(deviceID);
+                    if(document.getElementById(deviceID).checked == false){
+                      valueG = false;
+                      break;
+                    }
+                }
+                document.getElementById(myDevices.data.group_name + "state").checked = valueG;
                 var devicePictureState = checkOnOrOffState(deviceState[myDevices.serial]);
 
                 // alert(myDevices.serial);
@@ -178,7 +206,7 @@ function onState(deviceName, deviceID, deviceGroup, group) {
                 };
             }
         }
-        sendRequest(false, data, "/update_req");
+        sendRequest(false, data, "/update_req",0);
     }
 }
 function createNewGroup(mylistG, deviceGID) {
@@ -211,7 +239,6 @@ function createNewGroup(mylistG, deviceGID) {
     groupName.setAttribute("data-target", "#child" + deviceGID);
     groupName.addEventListener("click", function () {
             if (document.getElementsByClassName("groupName"+deviceGID)[0].getAttribute("aria-expanded")=="false") {
-
                 groupName.innerHTML = "Group: " + deviceGID + "  " + "<i class='fa fa-sort-asc' aria-hidden='true'></i>";
             }
             else {
@@ -247,3 +274,7 @@ function groupState(deviceGroup) {
 
     }
 }
+function updateState(){
+  sendRequest(true, request_for_page, "/status_req",1);
+}
+setInterval("updateState()", 5000);
