@@ -107,6 +107,7 @@ function onPageLoad(xhttp) {
             checkBox.checked = true;
         } else {
             checkBox.checked = false;
+            document.getElementById(deviceGID + "state").checked = false;
         }
         deviceName.innerHTML = myDevices[x].data.name;
         deviceSerial.innerHTML = "- Serial number: " + myDevices[x].serial + " -";
@@ -194,6 +195,7 @@ function createNewGroup(mylistG, deviceGID) {
     checkBox.type = "checkbox";
     checkBox.className = "";
     checkBox.id = myDevices[x].data.group_name + "state";
+    checkBox.checked = true;
     handler.innerHTML = "ON OFF";
     handler.className = "slider round";
     stateSlider.className = "switch";
