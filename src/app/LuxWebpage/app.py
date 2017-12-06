@@ -176,9 +176,10 @@ def read():
 def start_skill():
     connect()
     welcome_msg = "Hello, welcome to Lux! If you need help, say help"
-    RPmsg = "Session will end in 8 secs.... If you need help say help"
+    RPmsg = "Session will end in 8 secs...."
     print(welcome_msg)
-    return question(welcome_msg).reprompt(RPmsg)
+    #return question(welcome_msg).reprompt(RPmsg)
+    return question(welcome_msg)
 
 @ask.intent("OnIntent")
 def turn_on_skill(device):
@@ -195,9 +196,10 @@ def turn_on_skill(device):
             break;
         else:
             msg = "Sorry I don't see the device you specify, please try agin."
-    RPmsg = "Session will end in 8 secs.... If you need help say help"
+    RPmsg = "Session will end in 8 secs...."
     print(msg)
-    return question(msg).reprompt(RPmsg)
+    #return question(msg).reprompt(RPmsg)
+    return question(msg)
 
 @ask.intent("OffIntent")
 def turn_off_skill(device):
@@ -214,16 +216,18 @@ def turn_off_skill(device):
             break;
         else:
             msg = "Sorry I don't see the device you specify, please try agin."
-    RPmsg = "Session will end in 8 secs.... If you need help say help"
+    RPmsg = "Session will end in 8 secs...."
     print(msg)
-    return question(msg).reprompt(RPmsg)
+    #return question(msg).reprompt(RPmsg)
+    return question(msg)
 
 @ask.intent("helpIntent")
 def help_command():
-    msg = "To turn on device, say turn on ... device name. To turn off device, say turn off ... device name."
-    RPmsg = "Session will end in 8 secs.... If you need help say help"
+    msg = "To turn on a device, say turn on ... device name. To turn off a device, say turn off ... device name."
+    RPmsg = "Session will end in 8 secs...."
     print(msg)
-    return question(msg).reprompt(RPmsg)
+    #return question(msg).reprompt(RPmsg)
+    return question(msg)
 
 @ask.intent("OnGroupIntent")
 def turn_on_group_skill(group):
@@ -236,9 +240,10 @@ def turn_on_group_skill(group):
         msg = "Group " + group + " is ON"
     else:
         msg = "Sorry I don't see the group you specify, please try agin."
-    RPmsg = "Session will end in 8 secs.... If you need help say help"
+    RPmsg = "Session will end in 8 secs...."
     print(msg)
-    return question(msg).reprompt(RPmsg)
+    #return question(msg).reprompt(RPmsg)
+    return question(msg)
 
 @ask.intent("OffGroupIntent")
 def turn_off_group_skill(group):
@@ -251,9 +256,10 @@ def turn_off_group_skill(group):
         msg = "Group " + group + " is OFF"
     else:
         msg = "Sorry I don't see the group you specify, please try agin."
-    RPmsg = "Session will end in 8 secs. If you need help say help"
+    RPmsg = "Session will end in 8 secs...."
     print(msg)
-    return question(msg).reprompt(RPmsg)
+    #return question(msg).reprompt(RPmsg)
+    return question(msg)
 
 @ask.session_ended
 def session_ended():
