@@ -75,6 +75,7 @@ function sendRequest(upd, data, type,check) {
                 // alert(myDevices.serial);
                 document.getElementById(myDevices.serial).getElementsByClassName("Device_img")[0].src = devicePictureState.src;
                 // alert(devicePictureState);
+                document.getElementById(myDevices.serial + "state").disabled = false;
             }
         }
     }
@@ -171,6 +172,9 @@ function onState(deviceName, deviceID, deviceGroup, group) {
     return function () {
         //deviceState[deviceID]==0
         // alert(value);
+        if(document.getElementById(deviceID + "state").disabled == true){
+          return;
+        }
         var state = document.getElementById(deviceID + "state").checked;
         var groupstate = document.getElementById(deviceGroup + "state").checked;
         if (group) {
@@ -206,6 +210,7 @@ function onState(deviceName, deviceID, deviceGroup, group) {
                 };
             }
         }
+        document.getElementById(deviceID + "state").disabled = true
         sendRequest(false, data, "/update_req",0);
     }
 }
